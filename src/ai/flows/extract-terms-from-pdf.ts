@@ -59,7 +59,8 @@ const extractTermsFlow = ai.defineFlow(
     const pdfBuffer = Buffer.from(input.pdfContentBase64, 'base64');
     const data = await pdf(pdfBuffer);
 
-    if (!data.text) {
+    if (!data || !data.text) {
+      console.error("PDF parsing failed or returned no text.");
       return { extractedTerms: [] };
     }
 
