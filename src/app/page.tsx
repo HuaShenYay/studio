@@ -6,14 +6,12 @@ import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank'
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
-import TextAnalysis from '@/components/TextAnalysis';
-import ProblemDetection from '@/components/ProblemDetection';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm } from '@/services/terms-service';
 import { extractTermsFromPdf } from '@/ai/flows/extract-terms-from-pdf';
 
-type View = 'practice' | 'add' | 'analysis' | 'detection';
+type View = 'practice' | 'add';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
@@ -225,10 +223,6 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} />;
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} onPdfUpload={handlePdfUpload} isLoading={isProcessing} />;
-            case 'analysis':
-                return <TextAnalysis />;
-            case 'detection':
-                return <ProblemDetection />;
         }
     }
 
