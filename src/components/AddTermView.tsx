@@ -39,7 +39,7 @@ const formSchema = z.object({
 
 type AddTermViewProps = {
     onAddTerm: (term: string, explanation: string) => Promise<void>;
-    onPdfUpload: (pdfText: string) => Promise<void>;
+    onPdfUpload: (pdfContent: string) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -57,8 +57,7 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
                 if (event.target?.result) {
                     try {
                         const pdf = (await import('pdf-parse')).default;
-                        const buffer = Buffer.from(event.target.result as ArrayBuffer);
-                        const data = await pdf(buffer);
+                        const data = await pdf(event.target.result as ArrayBuffer);
                         onPdfUpload(data.text);
                     } catch (error) {
                         console.error("Failed to parse PDF", error);
@@ -76,6 +75,7 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
         onDrop,
         accept: { 'application/pdf': ['.pdf'] },
         maxFiles: 1,
+        disabled: isLoading,
     });
 
 
@@ -133,21 +133,31 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
             <Card className="mb-8">
                 <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">从 PDF 批量导入</h3>
-                    <div {...getRootProps()} className={`flex justify-center items-center w-full px-6 py-10 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}>
+                    <div {...getRootProps()} className={`flex justify-center items-center w-full px-6 py-10 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'} ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}>
                         <input {...getInputProps()} />
                         <div className="text-center">
-                            <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                            {fileName ? (
-                                <div className="mt-4 flex items-center gap-2">
-                                    <FileText className="h-5 w-5 text-primary" />
-                                    <p className="font-semibold text-primary">{fileName}</p>
+                            {isLoading ? (
+                               <div className="flex flex-col items-center gap-2">
+                                    <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
+                                    <p className="mt-4 text-sm text-primary font-semibold">AI 正在处理您的文档...</p>
+                                    <p className="text-xs text-muted-foreground mt-1">请稍候，这可能需要一点时间</p>
                                 </div>
                             ) : (
                                 <>
-                                    <p className="mt-4 text-sm text-muted-foreground">
-                                        <span className="font-semibold text-primary">点击上传</span> 或拖拽文件到此
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1">仅支持PDF文件</p>
+                                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    {fileName ? (
+                                        <div className="mt-4 flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-primary" />
+                                            <p className="font-semibold text-primary">{fileName}</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <p className="mt-4 text-sm text-muted-foreground">
+                                                <span className="font-semibold text-primary">点击上传</span> 或拖拽文件到此
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1">仅支持PDF文件</p>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </div>

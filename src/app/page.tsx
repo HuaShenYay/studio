@@ -119,12 +119,14 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
             if (!extractedTerms || extractedTerms.length === 0) {
                 toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });
+                setIsProcessing(false);
                 return;
             }
 
             toast({ title: "提取成功！", description: `AI识别出 ${extractedTerms.length} 个术语，正在为您生成练习...` });
 
             let count = 0;
+            const newTerms: LiteraryTerm[] = [];
             for (const { term, explanation } of extractedTerms) {
                 try {
                     const exerciseResult = await generateFillInBlankExercises({ term, explanation });
@@ -138,12 +140,14 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                         userAnswer: '',
                     };
                     const newTerm = await addTerm(newTermData);
-                    setTerms((prevTerms) => [newTerm, ...prevTerms]);
+                    newTerms.push(newTerm);
                     count++;
                 } catch (genError) {
                     console.error(`Failed to generate exercise for ${term}`, genError);
                 }
             }
+            
+            setTerms((prevTerms) => [...newTerms, ...prevTerms]);
 
             toast({
                 title: "批量导入完成！",

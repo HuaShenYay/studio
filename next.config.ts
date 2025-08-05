@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
         fs: false,
       };
     }
+    // canvas and sharp are server-side dependencies, so we externalize them
+    config.externals = [...config.externals, 'canvas', 'sharp'];
     return config;
   },
 };
