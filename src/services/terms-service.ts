@@ -4,30 +4,50 @@ import { supabase } from '@/lib/supabase';
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import type { Database, Tables } from '@/lib/supabase';
 
+type LiteraryTermRow = Tables<'literary_terms'>;
 type LiteraryTermInsert = Database['public']['Tables']['literary_terms']['Insert'];
 type LiteraryTermUpdate = Database['public']['Tables']['literary_terms']['Update'];
 
 const TERMS_TABLE = 'literary_terms';
+const PDF_BUCKET = 'pdfs';
 
-const fromSupabase = (row: Tables<'literary_terms'>): LiteraryTerm => ({
+const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
     ...row,
     createdAt: new Date(row.created_at),
 });
 
-const toSupabase = (term: Partial<LiteraryTerm> | LiteraryTermCreate): LiteraryTermInsert => {
-    const { id, createdAt, ...rest } = term as LiteraryTerm;
-    const supabaseData: LiteraryTermInsert = {
-        term: rest.term!,
-        explanation: rest.explanation!,
-        exercise: rest.exercise!,
-        answer: rest.answer!,
-        isDifficult: rest.isDifficult || false,
-        status: rest.status || 'unanswered',
-        userAnswer: rest.userAnswer || '',
+const toSupabase = (term: Partial<Omit<LiteraryTerm, 'id' | 'createdAt'>> | LiteraryTermCreate): LiteraryTermInsert => {
+    return {
+        term: term.term!,
+        explanation: term.explanation!,
+        exercise: term.exercise!,
+        answer: term.answer!,
+        isDifficult: term.isDifficult || false,
+        status: term.status || 'unanswered',
+        userAnswer: term.userAnswer || '',
     };
-    return supabaseData;
 };
 
+export async function uploadPdf(file: File): Promise<{ publicUrl: string }> {
+    const fileName = `${crypto.randomUUID()}-${file.name}`;
+    const { data, error } = await supabase.storage
+        .from(PDF_BUCKET)
+        .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false,
+        });
+
+    if (error) {
+        console.error('Error uploading file:', error);
+        throw new Error(`文件上传失败: ${error.message}`);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from(PDF_BUCKET)
+        .getPublicUrl(data.path);
+
+    return { publicUrl };
+}
 
 export async function addTerm(termData: LiteraryTermCreate): Promise<LiteraryTerm> {
     const supabaseData = toSupabase(termData);

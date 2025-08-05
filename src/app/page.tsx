@@ -8,7 +8,7 @@ import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
-import { addTerm, getTerms, updateTerm, deleteTerm } from '@/services/terms-service';
+import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf } from '@/services/terms-service';
 import { extractTermsFromPdf } from '@/ai/flows/extract-terms-from-pdf';
 
 type View = 'practice' | 'add';
@@ -110,12 +110,17 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             setIsProcessing(false);
         }
     };
-
-    const handlePdfUpload = async (pdfContentBase64: string) => {
+    
+    const handlePdfUpload = async (file: File) => {
         setIsProcessing(true);
-        toast({ title: "文件处理中", description: "AI正在从PDF中提取术语，请稍候..." });
+        toast({ title: "文件上传中...", description: "正在将您的PDF文件安全地上传到云端存储..." });
         try {
-            const { extractedTerms } = await extractTermsFromPdf({ pdfContentBase64 });
+            // 1. Upload PDF to Supabase Storage
+            const { publicUrl } = await uploadPdf(file);
+            toast({ title: "上传成功!", description: "AI正在从云端PDF中提取术语，请稍候..." });
+
+            // 2. Call AI flow with the public URL
+            const { extractedTerms } = await extractTermsFromPdf({ pdfUrl: publicUrl });
 
             if (!extractedTerms || extractedTerms.length === 0) {
                 toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });
@@ -125,6 +130,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
             toast({ title: "提取成功！", description: `AI识别出 ${extractedTerms.length} 个术语，正在为您生成练习...` });
 
+            // 3. Process extracted terms and add them to the database
             let count = 0;
             const newTerms: LiteraryTerm[] = [];
             for (const { term, explanation } of extractedTerms) {

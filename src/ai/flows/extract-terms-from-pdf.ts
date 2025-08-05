@@ -12,7 +12,7 @@ import {z} from 'genkit';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 const ExtractTermsInputSchema = z.object({
-  pdfContentBase64: z.string().describe('从PDF文件提取并以Base64编码的文本内容。'),
+  pdfUrl: z.string().url().describe('The public URL of the PDF file stored in Supabase Storage.'),
 });
 export type ExtractTermsInput = z.infer<typeof ExtractTermsInputSchema>;
 
@@ -56,15 +56,25 @@ const extractTermsFlow = ai.defineFlow(
     outputSchema: ExtractTermsOutputSchema,
   },
   async (input) => {
-    const pdfBuffer = Buffer.from(input.pdfContentBase64, 'base64');
-    const data = await pdf(pdfBuffer);
+    try {
+      const response = await fetch(input.pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF from URL: ${response.statusText}`);
+      }
+      const pdfBuffer = await response.arrayBuffer();
+      const data = await pdf(Buffer.from(pdfBuffer));
 
-    if (!data || !data.text) {
-      console.error("PDF parsing failed or returned no text.");
-      return { extractedTerms: [] };
+      if (!data || !data.text) {
+        console.error("PDF parsing failed or returned no text.");
+        return { extractedTerms: [] };
+      }
+
+      const {output} = await prompt({pdfContent: data.text});
+      return output!;
+    } catch (error) {
+       console.error("Error processing PDF from URL:", error);
+       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during PDF processing.';
+       throw new Error(`处理PDF文件时出错: ${errorMessage}`);
     }
-
-    const {output} = await prompt({pdfContent: data.text});
-    return output!;
   }
 );

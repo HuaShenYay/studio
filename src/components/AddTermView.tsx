@@ -39,7 +39,7 @@ const formSchema = z.object({
 
 type AddTermViewProps = {
     onAddTerm: (term: string, explanation: string) => Promise<void>;
-    onPdfUpload: (pdfContentBase64: string) => Promise<void>;
+    onPdfUpload: (file: File) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -52,23 +52,17 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
         const file = acceptedFiles[0];
         if (file) {
             setFileName(file.name);
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                if (event.target?.result) {
-                    try {
-                        const arrayBuffer = event.target.result as ArrayBuffer;
-                        const base64String = Buffer.from(arrayBuffer).toString('base64');
-                        onPdfUpload(base64String);
-                    } catch (error) {
-                        console.error("Failed to read file", error);
-                        toast({ variant: "destructive", title: "文件读取失败", description: "无法读取文件内容。" });
-                        setFileName(null);
-                    }
-                }
-            };
-            reader.readAsArrayBuffer(file);
+            try {
+                await onPdfUpload(file);
+                // Reset file name on success if needed, or parent component can handle it.
+                // setFileName(null);
+            } catch (error) {
+                console.error("Upload failed", error);
+                // The parent component should show a toast on error.
+                setFileName(null);
+            }
         }
-    }, [onPdfUpload, toast]);
+    }, [onPdfUpload]);
 
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
