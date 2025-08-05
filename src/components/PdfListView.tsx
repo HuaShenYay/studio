@@ -16,6 +16,45 @@ interface PdfFile {
     publicUrl: string;
 }
 
+function PdfCard({ file }: { file: PdfFile }) {
+    const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+    useEffect(() => {
+        setFormattedDate(
+            formatDistanceToNow(new Date(file.created_at), { addSuffix: true, locale: zhCN })
+        );
+    }, [file.created_at]);
+
+    const handleOpenFile = (url: string) => {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
+    return (
+        <Card>
+            <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4 overflow-hidden">
+                    <FileText className="h-8 w-8 text-primary/70 shrink-0" />
+                    <div className='overflow-hidden'>
+                        <p className="font-semibold truncate" title={file.name}>{file.name}</p>
+                        <p className="text-sm text-muted-foreground h-5">
+                            {formattedDate ? formattedDate : <span className="animate-pulse">计算中...</span>}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center shrink-0">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenFile(file.publicUrl)}
+                    >
+                        <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary"/>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 export default function PdfListView() {
     const [files, setFiles] = useState<PdfFile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +64,7 @@ export default function PdfListView() {
         setIsLoading(true);
         try {
             const fetchedFiles = await listPdfs();
-            setFiles(fetchedFiles.map(f => ({...f, created_at: f.created_at})));
+            setFiles(fetchedFiles);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
             toast({
@@ -41,10 +80,6 @@ export default function PdfListView() {
     useEffect(() => {
         fetchFiles();
     }, []);
-
-    const handleOpenFile = (url: string) => {
-        window.open(url, '_blank', 'noopener,noreferrer');
-    };
 
     if (isLoading) {
         return (
@@ -70,28 +105,7 @@ export default function PdfListView() {
             {files.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {files.map((file) => (
-                        <Card key={file.id}>
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-4 overflow-hidden">
-                                    <FileText className="h-8 w-8 text-primary/70 shrink-0" />
-                                    <div className='overflow-hidden'>
-                                        <p className="font-semibold truncate" title={file.name}>{file.name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatDistanceToNow(new Date(file.created_at), { addSuffix: true, locale: zhCN })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center shrink-0">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleOpenFile(file.publicUrl)}
-                                    >
-                                        <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary"/>
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <PdfCard key={file.id} file={file} />
                     ))}
                 </div>
             ) : (
