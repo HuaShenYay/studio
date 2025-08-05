@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { BookOpen, BrainCircuit, Loader2 } from 'lucide-react';
+import { BookOpen, BrainCircuit, Loader2, FileText } from 'lucide-react';
 import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm } from '@/types';
 import TermInputForm from '@/components/TermInputForm';
 import PracticeSession from '@/components/PracticeSession';
+import TextAnalysis from '@/components/TextAnalysis';
 import { useToast } from "@/hooks/use-toast";
 
 const initialTerms: Omit<LiteraryTerm, 'id' | 'exercise' | 'answer' | 'isDifficult' | 'status' | 'userAnswer'>[] = [
@@ -21,6 +22,7 @@ const initialTerms: Omit<LiteraryTerm, 'id' | 'exercise' | 'answer' | 'isDifficu
 export default function Home() {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAddingTerm, setIsAddingTerm] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -58,7 +60,7 @@ export default function Home() {
     }, [toast]);
 
     const handleAddTerm = async (term: string, explanation: string) => {
-        setIsLoading(true);
+        setIsAddingTerm(true);
         try {
             const result = await generateFillInBlankExercises({ term, explanation });
             const newTerm: LiteraryTerm = {
@@ -84,7 +86,7 @@ export default function Home() {
                 description: "生成练习失败。请检查您的网络连接或稍后重试。",
             })
         } finally {
-            setIsLoading(false);
+            setIsAddingTerm(false);
         }
     };
 
@@ -112,7 +114,17 @@ export default function Home() {
                 </header>
                 
                 <div className="max-w-3xl mx-auto grid grid-cols-1 gap-16">
-                    <TermInputForm onAddTerm={handleAddTerm} isLoading={isLoading} />
+                    <TermInputForm onAddTerm={handleAddTerm} isLoading={isAddingTerm} />
+                    
+                    <section>
+                         <div className="flex items-center gap-4 mb-8">
+                             <div className="p-3 rounded-full bg-primary/10 text-primary">
+                                <FileText className="h-8 w-8" />
+                             </div>
+                             <h2 className="text-3xl font-bold text-foreground">文本分析</h2>
+                         </div>
+                        <TextAnalysis />
+                    </section>
 
                     <section>
                          <div className="flex items-center gap-4 mb-8">

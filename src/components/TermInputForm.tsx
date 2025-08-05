@@ -3,7 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PlusCircle, Loader2 } from "lucide-react";
+import { PlusCircle, Loader2, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { generateExplanation } from "@/ai/flows/generate-explanation";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +41,9 @@ type TermInputFormProps = {
 }
 
 export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -45,6 +51,32 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
       explanation: "",
     },
   });
+
+  const handleGenerateExplanation = async () => {
+    const term = form.getValues("term");
+    if (!term) {
+      form.setError("term", { message: "请先输入一个术语。" });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await generateExplanation({ term });
+      form.setValue("explanation", result.explanation, { shouldValidate: true });
+       toast({
+        title: "解释已生成！",
+        description: "AI 已为您创建了解释。",
+      });
+    } catch (error) {
+      console.error("Failed to generate explanation:", error);
+      toast({
+        variant: "destructive",
+        title: "生成解释时出错",
+        description: "无法生成解释。请稍后重试。",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await onAddTerm(values.term, values.explanation);
@@ -81,7 +113,23 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                 name="explanation"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-lg">解释</FormLabel>
+                    <div className="flex justify-between items-center">
+                      <FormLabel className="text-lg">解释</FormLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateExplanation}
+                        disabled={isGenerating}
+                      >
+                        {isGenerating ? (
+                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
+                        )}
+                        AI 生成解释
+                      </Button>
+                    </div>
                     <FormControl>
                         <Textarea
                             placeholder="例如：一种由十四行组成的诗歌，使用多种正式的押韵格式..."
