@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { ColorSchemeLoader } from '@/components/ColorSchemeLoader';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ColorSchemeLoader />
           {children}
           <Toaster />
         </ThemeProvider>
