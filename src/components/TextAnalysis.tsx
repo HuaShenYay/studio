@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Wand2, Loader2, Feather, Brain, Image as ImageIcon } from "lucide-react";
+import { Wand2, Loader2, Feather, Brain, Image as ImageIcon, ScanText } from "lucide-react";
 import { analyzeText } from "@/ai/flows/analyze-text";
 import type { AnalyzeTextOutput } from "@/ai/flows/analyze-text";
 import { useToast } from "@/hooks/use-toast";
@@ -56,8 +56,17 @@ export default function TextAnalysis() {
   };
 
   return (
-    <Card className="shadow-lg">
-      <CardContent className="pt-6">
+    <div>
+      <div className="flex items-center gap-4 mb-6">
+           <div className="p-3 rounded-full bg-primary/10 text-primary">
+              <ScanText className="h-8 w-8" />
+           </div>
+           <div>
+              <h2 className="text-3xl font-bold text-foreground">文本分析</h2>
+              <p className="text-muted-foreground">粘贴一段文本，让 AI 为您深入解读。</p>
+           </div>
+       </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -113,7 +122,6 @@ export default function TextAnalysis() {
             />
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

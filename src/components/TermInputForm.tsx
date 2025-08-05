@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PlusCircle, Loader2, Sparkles } from "lucide-react";
+import { PlusCircle, Loader2, Sparkles, PlusSquare } from "lucide-react";
 import { useState } from "react";
 import { generateExplanation } from "@/ai/flows/generate-explanation";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formSchema = z.object({
   term: z.string().min(2, {
@@ -84,74 +83,75 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
   }
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20 shadow-lg">
-        <CardHeader className="bg-primary/5">
-            <CardTitle className="text-2xl text-primary flex items-center gap-3">
-              <PlusCircle />
-              添加新术语
-            </CardTitle>
-            <CardDescription>输入一个文学术语及其解释，以生成一个练习题。</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                control={form.control}
-                name="term"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel className="text-lg">文学术语</FormLabel>
-                    <FormControl>
-                        <Input placeholder="例如：十四行诗" {...field} className="text-base py-6" />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="explanation"
-                render={({ field }) => (
-                    <FormItem>
-                    <div className="flex justify-between items-center">
-                      <FormLabel className="text-lg">解释</FormLabel>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleGenerateExplanation}
-                        disabled={isGenerating}
-                      >
-                        {isGenerating ? (
-                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
-                        )}
-                        AI 生成解释
-                      </Button>
-                    </div>
-                    <FormControl>
-                        <Textarea
-                            placeholder="例如：一种由十四行组成的诗歌，使用多种正式的押韵格式..."
-                            className="resize-none text-base"
-                            rows={4}
-                            {...field}
-                        />
-                    </FormControl>
-                     <FormDescription>
-                        我们的 AI 将据此创建一个填空题。
-                    </FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <Button type="submit" disabled={isLoading} size="lg" className="w-full sm:w-auto">
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                    生成练习
-                </Button>
-            </form>
-            </Form>
-        </CardContent>
-    </Card>
+    <div>
+        <div className="flex items-center gap-4 mb-6">
+             <div className="p-3 rounded-full bg-primary/10 text-primary">
+                <PlusSquare className="h-8 w-8" />
+             </div>
+             <div>
+                <h2 className="text-3xl font-bold text-foreground">添加新术语</h2>
+                <p className="text-muted-foreground">输入术语和解释，AI 将自动生成练习题。</p>
+             </div>
+        </div>
+
+        <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+            control={form.control}
+            name="term"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel className="text-lg">文学术语</FormLabel>
+                <FormControl>
+                    <Input placeholder="例如：十四行诗" {...field} className="text-base py-6" />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="explanation"
+            render={({ field }) => (
+                <FormItem>
+                <div className="flex justify-between items-center">
+                  <FormLabel className="text-lg">解释</FormLabel>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateExplanation}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? (
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
+                    )}
+                    AI 生成解释
+                  </Button>
+                </div>
+                <FormControl>
+                    <Textarea
+                        placeholder="例如：一种由十四行组成的诗歌，使用多种正式的押韵格式..."
+                        className="resize-none text-base"
+                        rows={4}
+                        {...field}
+                    />
+                </FormControl>
+                 <FormDescription>
+                    我们的 AI 将据此创建一个填空题。
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <Button type="submit" disabled={isLoading} size="lg" className="w-full sm:w-auto">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                生成练习
+            </Button>
+        </form>
+        </Form>
+    </div>
   );
 }

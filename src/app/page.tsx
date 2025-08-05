@@ -1,12 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { BookOpen, BrainCircuit, Loader2, FileText } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm } from '@/types';
 import TermInputForm from '@/components/TermInputForm';
 import PracticeSession from '@/components/PracticeSession';
 import TextAnalysis from '@/components/TextAnalysis';
 import { useToast } from "@/hooks/use-toast";
+import AppLayout from '@/components/AppLayout';
+
+type View = 'practice' | 'add' | 'analysis';
 
 const initialTerms: Omit<LiteraryTerm, 'id' | 'exercise' | 'answer' | 'isDifficult' | 'status' | 'userAnswer'>[] = [
     {
@@ -23,6 +26,7 @@ export default function Home() {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddingTerm, setIsAddingTerm] = useState(false);
+    const [currentView, setCurrentView] = useState<View>('practice');
     const { toast } = useToast();
 
     useEffect(() => {
@@ -78,6 +82,7 @@ export default function Home() {
               title: "术语已添加！",
               description: `已成功为“${term}”创建练习。`,
             })
+            setCurrentView('practice');
         } catch (error) {
             console.error('Failed to add term:', error);
             toast({
@@ -96,54 +101,29 @@ export default function Home() {
         );
     };
 
-    return (
-        <div className="min-h-screen w-full bg-background">
-            <main className="container mx-auto px-4 py-8 md:py-16">
-                <header className="text-center mb-16">
-                    <div className="inline-flex items-center gap-4 p-4 rounded-full bg-primary/10">
-                        <div className="p-3 rounded-full bg-primary text-primary-foreground">
-                            <BookOpen className="h-8 w-8" />
-                        </div>
-                         <h1 className="text-4xl md:text-5xl font-bold text-primary">
-                            文词通
-                        </h1>
-                    </div>
-                    <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">
-                        您的个人文学术语备考助手。在这里添加术语，然后通过自动生成的填空题进行练习。
-                    </p>
-                </header>
-                
-                <div className="max-w-3xl mx-auto grid grid-cols-1 gap-16">
-                    <TermInputForm onAddTerm={handleAddTerm} isLoading={isAddingTerm} />
-                    
-                    <section>
-                         <div className="flex items-center gap-4 mb-8">
-                             <div className="p-3 rounded-full bg-primary/10 text-primary">
-                                <FileText className="h-8 w-8" />
-                             </div>
-                             <h2 className="text-3xl font-bold text-foreground">文本分析</h2>
-                         </div>
-                        <TextAnalysis />
-                    </section>
-
-                    <section>
-                         <div className="flex items-center gap-4 mb-8">
-                             <div className="p-3 rounded-full bg-primary/10 text-primary">
-                                <BrainCircuit className="h-8 w-8" />
-                             </div>
-                             <h2 className="text-3xl font-bold text-foreground">练习模式</h2>
-                         </div>
-                        {isLoading && terms.length === 0 ? (
-                           <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card">
-                               <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-                               <p className="text-lg">正在为您准备初次练习...</p>
-                           </div>
-                        ) : (
-                           <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} />
-                        )}
-                    </section>
+    const renderContent = () => {
+        if (isLoading && terms.length === 0) {
+            return (
+                <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                    <p className="text-lg">正在为您准备初次练习...</p>
                 </div>
-            </main>
-        </div>
+            );
+        }
+
+        switch (currentView) {
+            case 'practice':
+                return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} />;
+            case 'add':
+                return <TermInputForm onAddTerm={handleAddTerm} isLoading={isAddingTerm} />;
+            case 'analysis':
+                return <TextAnalysis />;
+        }
+    }
+
+    return (
+        <AppLayout currentView={currentView} setCurrentView={setCurrentView}>
+            {renderContent()}
+        </AppLayout>
     );
 }
