@@ -51,6 +51,26 @@ export async function uploadPdf(file: File): Promise<{ publicUrl: string }> {
     return { publicUrl };
 }
 
+export async function listPdfs() {
+    const { data, error } = await supabase.storage.from(PDF_BUCKET).list('', {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: 'created_at', order: 'desc' },
+    });
+
+    if (error) {
+        console.error('Error listing files:', error);
+        throw new Error(`获取文件列表失败: ${error.message}`);
+    }
+    
+    const filesWithUrls = data.map(file => {
+        const { data: { publicUrl } } = supabase.storage.from(PDF_BUCKET).getPublicUrl(file.name);
+        return { ...file, publicUrl };
+    });
+
+    return filesWithUrls;
+}
+
 export async function addTerm(termData: LiteraryTermCreate): Promise<LiteraryTerm> {
     const supabaseData = toSupabase(termData);
     const { data, error } = await supabase

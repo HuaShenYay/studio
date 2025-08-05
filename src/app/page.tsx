@@ -6,12 +6,13 @@ import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank'
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
+import PdfListView from '@/components/PdfListView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf } from '@/services/terms-service';
 import { extractTermsFromPdf } from '@/ai/flows/extract-terms-from-pdf';
 
-type View = 'practice' | 'add';
+type View = 'practice' | 'add' | 'files';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
@@ -215,7 +216,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     };
 
     const renderContent = () => {
-        if (isLoading) {
+        if (isLoading && currentView === 'practice') {
             return (
                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card h-full">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -229,6 +230,8 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} />;
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} onPdfUpload={handlePdfUpload} isLoading={isProcessing} />;
+            case 'files':
+                return <PdfListView />;
         }
     }
 
