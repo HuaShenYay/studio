@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm } from '@/types';
@@ -22,7 +23,48 @@ const initialTerms: Omit<LiteraryTerm, 'id' | 'exercise' | 'answer' | 'isDifficu
     }
 ];
 
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        const loggedIn = searchParams.get('loggedin') === 'true';
+        if (loggedIn) {
+            sessionStorage.setItem('isAuthenticated', 'true');
+            setIsAuthenticated(true);
+        } else {
+            const sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+            if(sessionAuth) {
+                setIsAuthenticated(true);
+            } else {
+                router.push('/login');
+            }
+        }
+    }, [searchParams, router]);
+
+    if (!isAuthenticated) {
+        return (
+            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                <p className="text-lg">正在验证身份...</p>
+            </div>
+        );
+    }
+
+    return <>{children}</>;
+}
+
+
 export default function Home() {
+    return (
+        <AuthWrapper>
+            <MainContent />
+        </AuthWrapper>
+    );
+}
+
+function MainContent() {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddingTerm, setIsAddingTerm] = useState(false);
