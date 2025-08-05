@@ -5,7 +5,7 @@ import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank'
 import type { LiteraryTerm } from '@/types';
 import TermInputForm from '@/components/TermInputForm';
 import PracticeSession from '@/components/PracticeSession';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 
 const initialTerms: Omit<LiteraryTerm, 'id' | 'exercise' | 'answer' | 'isDifficult' | 'status' | 'userAnswer'>[] = [
     {
@@ -55,7 +55,7 @@ export default function Home() {
             setIsLoading(false);
         };
         initializeTerms();
-    }, []);
+    }, [toast]);
 
     const handleAddTerm = async (term: string, explanation: string) => {
         setIsLoading(true);
@@ -95,32 +95,36 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen w-full">
-            <main className="container mx-auto px-4 py-8 md:py-12">
-                <header className="text-center mb-12">
-                    <div className="inline-flex items-center gap-3">
-                        <BookOpen className="h-10 w-10 text-primary" />
-                        <h1 className="font-headline text-4xl md:text-5xl font-bold text-foreground">
+        <div className="min-h-screen w-full bg-background">
+            <main className="container mx-auto px-4 py-8 md:py-16">
+                <header className="text-center mb-16">
+                    <div className="inline-flex items-center gap-4 p-4 rounded-full bg-primary/10">
+                        <div className="p-3 rounded-full bg-primary text-primary-foreground">
+                            <BookOpen className="h-8 w-8" />
+                        </div>
+                         <h1 className="text-4xl md:text-5xl font-bold text-primary">
                             文词通
                         </h1>
                     </div>
-                    <p className="text-muted-foreground mt-2 text-lg">
-                        您的个人文学术语备考助手。
+                    <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">
+                        您的个人文学术语备考助手。在这里添加术语，然后通过自动生成的填空题进行练习。
                     </p>
                 </header>
                 
-                <div className="max-w-4xl mx-auto grid grid-cols-1 gap-12">
+                <div className="max-w-3xl mx-auto grid grid-cols-1 gap-16">
                     <TermInputForm onAddTerm={handleAddTerm} isLoading={isLoading} />
 
                     <section>
-                         <div className="flex items-center gap-3 mb-6">
-                             <BrainCircuit className="h-8 w-8 text-primary" />
-                             <h2 className="font-headline text-3xl font-semibold text-foreground">练习模式</h2>
+                         <div className="flex items-center gap-4 mb-8">
+                             <div className="p-3 rounded-full bg-primary/10 text-primary">
+                                <BrainCircuit className="h-8 w-8" />
+                             </div>
+                             <h2 className="text-3xl font-bold text-foreground">练习模式</h2>
                          </div>
                         {isLoading && terms.length === 0 ? (
-                           <div className="flex justify-center items-center gap-3 text-muted-foreground py-10">
-                               <Loader2 className="h-6 w-6 animate-spin"/>
-                               <p>正在为您准备初次练习...</p>
+                           <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card">
+                               <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                               <p className="text-lg">正在为您准备初次练习...</p>
                            </div>
                         ) : (
                            <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} />

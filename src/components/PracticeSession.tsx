@@ -14,9 +14,9 @@ export default function PracticeSession({ terms, onUpdateTerm }: PracticeSession
 
     return (
         <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-card">
-                <TabsTrigger value="all">全部术语 ({terms.length})</TabsTrigger>
-                <TabsTrigger value="review">复习列表 ({reviewTerms.length})</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-primary/10 p-1 h-auto">
+                <TabsTrigger value="all" className="py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">全部术语 ({terms.length})</TabsTrigger>
+                <TabsTrigger value="review" className="py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">复习列表 ({reviewTerms.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-6">
                 {terms.length > 0 ? (
@@ -26,8 +26,9 @@ export default function PracticeSession({ terms, onUpdateTerm }: PracticeSession
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-muted-foreground py-10">
-                        <p>还没有术语。请在上方添加一个以开始！</p>
+                    <div className="text-center text-muted-foreground py-12 rounded-xl bg-card">
+                        <p className="text-lg">还没有术语。</p>
+                        <p>请在上方添加一个以开始！</p>
                     </div>
                 )}
             </TabsContent>
@@ -39,8 +40,8 @@ export default function PracticeSession({ terms, onUpdateTerm }: PracticeSession
                         ))}
                     </div>
                 ) : (
-                     <div className="text-center text-muted-foreground py-10">
-                        <p>您的复习列表中没有术语。</p>
+                     <div className="text-center text-muted-foreground py-12 rounded-xl bg-card">
+                        <p className="text-lg">您的复习列表中没有术语。</p>
                         <p className="text-sm">用星标标记一个术语以将其添加到此处。</p>
                     </div>
                 )}

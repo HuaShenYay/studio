@@ -33,11 +33,18 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
         onUpdate({ ...termData, isDifficult: !termData.isDifficult });
     };
 
-    const borderColor = {
-        correct: 'border-green-500',
-        incorrect: 'border-destructive',
+    const borderColorClass = {
+        correct: 'border-green-500/50 dark:border-green-400/50',
+        incorrect: 'border-destructive/50',
         unanswered: 'border-border'
     }[status];
+
+    const backgroundColorClass = {
+        correct: 'bg-green-500/5',
+        incorrect: 'bg-destructive/5',
+        unanswered: 'bg-card'
+    }[status];
+
 
     const renderFeedback = () => {
         if (status === 'correct') {
@@ -60,12 +67,12 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
     }
 
     return (
-        <Card className={cn("transition-colors duration-300 shadow-md", borderColor)}>
+        <Card className={cn("transition-all duration-300", borderColorClass, backgroundColorClass)}>
             <CardContent className="pt-6">
-                <p className="text-lg font-serif leading-relaxed text-foreground/90">
+                <blockquote className="text-lg leading-relaxed text-foreground/90 border-l-4 border-primary/20 pl-4">
                     {termData.exercise}
-                </p>
-                <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                </blockquote>
+                <div className="mt-6 flex flex-col sm:flex-row gap-2">
                     <Input
                         type="text"
                         placeholder="在此输入您的答案..."
@@ -87,7 +94,10 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
                     {renderFeedback()}
                 </div>
             </CardContent>
-            <CardFooter className="bg-card/50 dark:bg-background/20 px-6 py-3 flex justify-end">
+            <CardFooter className="bg-transparent dark:bg-background/20 px-6 py-3 flex justify-between items-center">
+                 <div className="text-xs text-muted-foreground">
+                    术语: <strong>{termData.term}</strong>
+                 </div>
                  <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -97,7 +107,7 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
                                 onClick={handleToggleDifficult}
                                 aria-label={termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}
                             >
-                                <Star className={cn("h-5 w-5 transition-colors", termData.isDifficult ? 'text-yellow-500 fill-yellow-400' : 'text-muted-foreground')}/>
+                                <Star className={cn("h-5 w-5 transition-colors", termData.isDifficult ? 'text-yellow-500 fill-yellow-400' : 'text-muted-foreground hover:text-yellow-500')}/>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>

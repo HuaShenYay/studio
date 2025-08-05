@@ -52,12 +52,15 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
   }
 
   return (
-    <Card className="overflow-hidden shadow-lg">
-        <CardHeader>
-            <CardTitle>添加新术语</CardTitle>
+    <Card className="overflow-hidden border-2 border-primary/20 shadow-lg">
+        <CardHeader className="bg-primary/5">
+            <CardTitle className="text-2xl text-primary flex items-center gap-3">
+              <PlusCircle />
+              添加新术语
+            </CardTitle>
             <CardDescription>输入一个文学术语及其解释，以生成一个练习题。</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -65,9 +68,9 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                 name="term"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>文学术语</FormLabel>
+                    <FormLabel className="text-lg">文学术语</FormLabel>
                     <FormControl>
-                        <Input placeholder="例如：十四行诗" {...field} />
+                        <Input placeholder="例如：十四行诗" {...field} className="text-base py-6" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -78,11 +81,12 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                 name="explanation"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>解释</FormLabel>
+                    <FormLabel className="text-lg">解释</FormLabel>
                     <FormControl>
                         <Textarea
                             placeholder="例如：一种由十四行组成的诗歌，使用多种正式的押韵格式..."
-                            className="resize-none"
+                            className="resize-none text-base"
+                            rows={4}
                             {...field}
                         />
                     </FormControl>
@@ -93,7 +97,7 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                     </FormItem>
                 )}
                 />
-                <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+                <Button type="submit" disabled={isLoading} size="lg" className="w-full sm:w-auto">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                     生成练习
                 </Button>
