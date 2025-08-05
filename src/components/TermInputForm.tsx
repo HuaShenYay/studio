@@ -21,14 +21,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const formSchema = z.object({
   term: z.string().min(2, {
-    message: "Term must be at least 2 characters.",
+    message: "术语必须至少包含 2 个字符。",
   }).max(50, {
-      message: "Term must not exceed 50 characters."
+      message: "术语不能超过 50 个字符。"
   }),
   explanation: z.string().min(10, {
-      message: "Explanation must be at least 10 characters."
+      message: "解释必须至少包含 10 个字符。"
   }).max(500, {
-      message: "Explanation must not exceed 500 characters."
+      message: "解释不能超过 500 个字符。"
   })
 });
 
@@ -54,8 +54,8 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
   return (
     <Card className="overflow-hidden shadow-lg">
         <CardHeader>
-            <CardTitle>Add a New Term</CardTitle>
-            <CardDescription>Enter a literary term and its explanation to generate a practice exercise.</CardDescription>
+            <CardTitle>添加新术语</CardTitle>
+            <CardDescription>输入一个文学术语及其解释，以生成一个练习题。</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -65,9 +65,9 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                 name="term"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Literary Term</FormLabel>
+                    <FormLabel>文学术语</FormLabel>
                     <FormControl>
-                        <Input placeholder="e.g., Sonnet" {...field} />
+                        <Input placeholder="例如：十四行诗" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -78,16 +78,16 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                 name="explanation"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Explanation</FormLabel>
+                    <FormLabel>解释</FormLabel>
                     <FormControl>
                         <Textarea
-                            placeholder="e.g., A poem of fourteen lines using any of a number of formal rhyme schemes..."
+                            placeholder="例如：一种由十四行组成的诗歌，使用多种正式的押韵格式..."
                             className="resize-none"
                             {...field}
                         />
                     </FormControl>
                      <FormDescription>
-                        Our AI will create a fill-in-the-blank question from this.
+                        我们的 AI 将据此创建一个填空题。
                     </FormDescription>
                     <FormMessage />
                     </FormItem>
@@ -95,7 +95,7 @@ export default function TermInputForm({ onAddTerm, isLoading }: TermInputFormPro
                 />
                 <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                    Generate Exercise
+                    生成练习
                 </Button>
             </form>
             </Form>

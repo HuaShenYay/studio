@@ -11,13 +11,13 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateFillInBlankExercisesInputSchema = z.object({
-  term: z.string().describe('The literary term.'),
-  explanation: z.string().describe('The explanation of the literary term.'),
+  term: z.string().describe('文学术语。'),
+  explanation: z.string().describe('对该文学术语的解释。'),
 });
 export type GenerateFillInBlankExercisesInput = z.infer<typeof GenerateFillInBlankExercisesInputSchema>;
 
 const GenerateFillInBlankExercisesOutputSchema = z.object({
-  exercise: z.string().describe('A fill-in-the-blank exercise generated from the explanation.'),
+  exercise: z.string().describe('根据解释生成的填空题。'),
 });
 export type GenerateFillInBlankExercisesOutput = z.infer<typeof GenerateFillInBlankExercisesOutputSchema>;
 
@@ -29,12 +29,12 @@ const prompt = ai.definePrompt({
   name: 'generateFillInBlankExercisesPrompt',
   input: {schema: GenerateFillInBlankExercisesInputSchema},
   output: {schema: GenerateFillInBlankExercisesOutputSchema},
-  prompt: `Generate a fill-in-the-blank exercise based on the following literary term and its explanation.
+  prompt: `根据以下文学术语及其解释，生成一个填空练习题。在句子中用 "____" 代替术语本身。
 
-Term: {{term}}
-Explanation: {{explanation}}
+术语：{{term}}
+解释：{{explanation}}
 
-Exercise:`,
+练习题：`,
 });
 
 const generateFillInBlankExercisesFlow = ai.defineFlow(

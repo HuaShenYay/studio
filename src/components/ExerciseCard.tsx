@@ -44,7 +44,7 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
             return (
                 <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                     <CheckCircle2 className="h-5 w-5"/>
-                    <p className="font-semibold">Correct!</p>
+                    <p className="font-semibold">回答正确！</p>
                 </div>
             )
         }
@@ -52,7 +52,7 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
              return (
                 <div className="flex items-center gap-2 text-destructive">
                     <XCircle className="h-5 w-5"/>
-                    <p className="font-semibold">Not quite. The correct answer is: <strong>{termData.answer}</strong></p>
+                    <p className="font-semibold">不太对。正确答案是：<strong>{termData.answer}</strong></p>
                 </div>
             )
         }
@@ -68,7 +68,7 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
                 <div className="mt-4 flex flex-col sm:flex-row gap-2">
                     <Input
                         type="text"
-                        placeholder="Type your answer here..."
+                        placeholder="在此输入您的答案..."
                         value={userAnswer}
                         onChange={(e) => setUserAnswer(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && status === 'unanswered' && handleCheckAnswer()}
@@ -77,10 +77,10 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
                     />
                      {status === 'unanswered' ? (
                         <Button onClick={handleCheckAnswer} className="shrink-0">
-                           Check Answer <ChevronRight className="ml-2 h-4 w-4"/>
+                           检查答案 <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     ) : (
-                         <Button onClick={handleTryAgain} variant="secondary" className="shrink-0">Try Again</Button>
+                         <Button onClick={handleTryAgain} variant="secondary" className="shrink-0">再试一次</Button>
                     )}
                 </div>
                  <div className="mt-4 min-h-[28px]">
@@ -95,13 +95,13 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
                                 variant="ghost"
                                 size="icon"
                                 onClick={handleToggleDifficult}
-                                aria-label={termData.isDifficult ? 'Remove from review list' : 'Add to review list'}
+                                aria-label={termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}
                             >
                                 <Star className={cn("h-5 w-5 transition-colors", termData.isDifficult ? 'text-yellow-500 fill-yellow-400' : 'text-muted-foreground')}/>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>{termData.isDifficult ? 'Remove from review' : 'Add to review'}</p>
+                            <p>{termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

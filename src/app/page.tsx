@@ -9,12 +9,12 @@ import { useToast } from "@/hooks/use-toast"
 
 const initialTerms: Omit<LiteraryTerm, 'id' | 'exercise' | 'answer' | 'isDifficult' | 'status' | 'userAnswer'>[] = [
     {
-        term: 'Metaphor',
-        explanation: 'A figure of speech in which a word or phrase is applied to an object or action to which it is not literally applicable.',
+        term: '隐喻',
+        explanation: '一种修辞手法，将一个词或短语应用于其不适用的对象或行为上。',
     },
     {
-        term: 'Alliteration',
-        explanation: 'The occurrence of the same letter or sound at the beginning of adjacent or closely connected words.',
+        term: '头韵',
+        explanation: '指相邻或相近的词语开头使用相同字母或发音的现象。',
     }
 ];
 
@@ -46,8 +46,8 @@ export default function Home() {
                     console.error('Failed to generate exercise for', initialTerm.term, error);
                      toast({
                         variant: "destructive",
-                        title: "Error Generating Exercise",
-                        description: `Could not generate an exercise for "${initialTerm.term}". Please try again.`,
+                        title: "生成练习时出错",
+                        description: `无法为“${initialTerm.term}”生成练习。请重试。`,
                     })
                 }
             }
@@ -73,15 +73,15 @@ export default function Home() {
             };
             setTerms((prevTerms) => [newTerm, ...prevTerms]);
             toast({
-              title: "Term Added!",
-              description: `Successfully created an exercise for "${term}".`,
+              title: "术语已添加！",
+              description: `已成功为“${term}”创建练习。`,
             })
         } catch (error) {
             console.error('Failed to add term:', error);
             toast({
                 variant: "destructive",
-                title: "Error",
-                description: "Failed to generate an exercise. Please check your connection or try again later.",
+                title: "出错了",
+                description: "生成练习失败。请检查您的网络连接或稍后重试。",
             })
         } finally {
             setIsLoading(false);
@@ -101,11 +101,11 @@ export default function Home() {
                     <div className="inline-flex items-center gap-3">
                         <BookOpen className="h-10 w-10 text-primary" />
                         <h1 className="font-headline text-4xl md:text-5xl font-bold text-foreground">
-                            LexiPrep
+                            文词通
                         </h1>
                     </div>
                     <p className="text-muted-foreground mt-2 text-lg">
-                        Your personal assistant for mastering literary terminology.
+                        您的个人文学术语备考助手。
                     </p>
                 </header>
                 
@@ -115,12 +115,12 @@ export default function Home() {
                     <section>
                          <div className="flex items-center gap-3 mb-6">
                              <BrainCircuit className="h-8 w-8 text-primary" />
-                             <h2 className="font-headline text-3xl font-semibold text-foreground">Practice Session</h2>
+                             <h2 className="font-headline text-3xl font-semibold text-foreground">练习模式</h2>
                          </div>
                         {isLoading && terms.length === 0 ? (
                            <div className="flex justify-center items-center gap-3 text-muted-foreground py-10">
                                <Loader2 className="h-6 w-6 animate-spin"/>
-                               <p>Preparing your first exercises...</p>
+                               <p>正在为您准备初次练习...</p>
                            </div>
                         ) : (
                            <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} />
