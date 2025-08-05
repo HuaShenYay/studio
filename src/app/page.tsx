@@ -112,26 +112,19 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         }
     };
     
-    const handlePdfUpload = async (file: File) => {
+    const handleProcessPdf = async (publicUrl: string, fileName: string) => {
         setIsProcessing(true);
-        toast({ title: "文件上传中...", description: "正在将您的PDF文件安全地上传到云端存储..." });
+        toast({ title: "AI正在处理中...", description: `正在从 ${fileName} 中提取术语，请稍候...` });
+
         try {
-            // 1. Upload PDF to Supabase Storage
-            const { publicUrl } = await uploadPdf(file);
-            toast({ title: "上传成功!", description: "AI正在从云端PDF中提取术语，请稍候..." });
-
-            // 2. Call AI flow with the public URL
             const { extractedTerms } = await extractTermsFromPdf({ pdfUrl: publicUrl });
-
             if (!extractedTerms || extractedTerms.length === 0) {
                 toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });
-                setIsProcessing(false);
                 return;
             }
 
             toast({ title: "提取成功！", description: `AI识别出 ${extractedTerms.length} 个术语，正在为您生成练习...` });
 
-            // 3. Process extracted terms and add them to the database
             let count = 0;
             const newTerms: LiteraryTerm[] = [];
             for (const { term, explanation } of extractedTerms) {
@@ -161,13 +154,32 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 description: `成功添加了 ${count} 个新术语。`,
             });
             setCurrentView('practice');
-
         } catch (error) {
-            console.error('Failed to process PDF:', error);
+             console.error('Failed to process PDF:', error);
             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
             toast({
                 variant: "destructive",
                 title: "PDF处理失败",
+                description: `${errorMessage}`,
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    }
+
+
+    const handlePdfUpload = async (file: File) => {
+        setIsProcessing(true);
+        toast({ title: "文件上传中...", description: "正在将您的PDF文件安全地上传到云端存储..." });
+        try {
+            const { publicUrl } = await uploadPdf(file);
+            await handleProcessPdf(publicUrl, file.name);
+        } catch (error) {
+            console.error('Failed to upload PDF:', error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: "destructive",
+                title: "PDF上传失败",
                 description: `${errorMessage}`,
             });
         } finally {
@@ -231,7 +243,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} onPdfUpload={handlePdfUpload} isLoading={isProcessing} />;
             case 'files':
-                return <PdfListView />;
+                return <PdfListView onGenerate={handleProcessPdf} isProcessing={isProcessing} />;
         }
     }
 

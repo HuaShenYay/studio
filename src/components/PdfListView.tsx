@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { listPdfs, deletePdf } from '@/services/terms-service';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FolderOpen, FileText, ExternalLink, Trash2 } from 'lucide-react';
+import { Loader2, FolderOpen, FileText, ExternalLink, Trash2, Sparkles } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -30,7 +30,19 @@ interface PdfFile {
     publicUrl: string;
 }
 
-function PdfCard({ file, onDelete }: { file: PdfFile; onDelete: (fileName: string) => void; }) {
+function PdfCard({ 
+    file,
+    onDelete,
+    onGenerate,
+    isProcessing,
+    processingFileId 
+}: { 
+    file: PdfFile;
+    onDelete: (fileName: string) => void;
+    onGenerate: (publicUrl: string, fileName: string) => void;
+    isProcessing: boolean;
+    processingFileId: string | null;
+}) {
     const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
     useEffect(() => {
@@ -46,6 +58,12 @@ function PdfCard({ file, onDelete }: { file: PdfFile; onDelete: (fileName: strin
     const handleDelete = () => {
         onDelete(file.name);
     }
+    
+    const handleGenerate = () => {
+        onGenerate(file.publicUrl, file.name);
+    }
+
+    const isCurrentlyProcessing = isProcessing && processingFileId === file.id;
 
     return (
         <Card>
@@ -66,7 +84,23 @@ function PdfCard({ file, onDelete }: { file: PdfFile; onDelete: (fileName: strin
                                 <Button
                                     variant="ghost"
                                     size="icon"
+                                    onClick={handleGenerate}
+                                    disabled={isProcessing}
+                                >
+                                    {isCurrentlyProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 text-muted-foreground hover:text-primary"/>}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>生成练习</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={() => handleOpenFile(file.publicUrl)}
+                                    disabled={isProcessing}
                                 >
                                     <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary"/>
                                 </Button>
@@ -75,46 +109,50 @@ function PdfCard({ file, onDelete }: { file: PdfFile; onDelete: (fileName: strin
                                 <p>在新标签页中打开</p>
                             </TooltipContent>
                         </Tooltip>
+                        <AlertDialog>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" aria-label="删除文件" disabled={isProcessing}>
+                                          <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive"/>
+                                      </Button>
+                                  </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>删除文件</p>
+                              </TooltipContent>
+                          </Tooltip>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>您确定要删除此文件吗？</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                此操作无法撤销。这将从云端存储中永久删除文件 “<strong>{file.name}</strong>”。
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({ variant: "destructive" }))}>删除</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </TooltipProvider>
-
-                     <AlertDialog>
-                      <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" aria-label="删除文件">
-                                        <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive"/>
-                                    </Button>
-                                </AlertDialogTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>删除文件</p>
-                            </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>您确定要删除此文件吗？</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            此操作无法撤销。这将从云端存储中永久删除文件 “<strong>{file.name}</strong>”。
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>取消</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({ variant: "destructive" }))}>删除</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                 </div>
             </CardContent>
         </Card>
     );
 }
 
-export default function PdfListView() {
+export default function PdfListView({ onGenerate, isProcessing: isGloballyProcessing }: { onGenerate: (publicUrl: string, fileName: string) => void; isProcessing: boolean; }) {
     const [files, setFiles] = useState<PdfFile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [processingFileId, setProcessingFileId] = useState<string | null>(null);
     const { toast } = useToast();
+    
+    const handleGenerate = async (publicUrl: string, file: PdfFile) => {
+        setProcessingFileId(file.id);
+        await onGenerate(publicUrl, file.name);
+        setProcessingFileId(null);
+    }
 
     const fetchFiles = async () => {
         setIsLoading(true);
@@ -179,7 +217,14 @@ export default function PdfListView() {
             {files.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {files.map((file) => (
-                        <PdfCard key={file.id} file={file} onDelete={handleDeleteFile} />
+                        <PdfCard 
+                            key={file.id} 
+                            file={file} 
+                            onDelete={handleDeleteFile}
+                            onGenerate={(publicUrl, fileName) => handleGenerate(publicUrl, { ...file, name: fileName })}
+                            isProcessing={isGloballyProcessing}
+                            processingFileId={processingFileId}
+                        />
                     ))}
                 </div>
             ) : (
