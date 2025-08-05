@@ -24,11 +24,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  webpack: (config, { isServer }) => {
-    // canvas and sharp are server-side dependencies, so we externalize them
-    config.externals = [...config.externals, 'canvas', 'sharp'];
-    return config;
-  },
 };
 
 export default nextConfig;
