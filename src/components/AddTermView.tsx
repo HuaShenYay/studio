@@ -39,7 +39,7 @@ const formSchema = z.object({
 
 type AddTermViewProps = {
     onAddTerm: (term: string, explanation: string) => Promise<void>;
-    onPdfUpload: (pdfContent: string) => Promise<void>;
+    onPdfUpload: (pdfContentBase64: string) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -56,12 +56,12 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
             reader.onload = async (event) => {
                 if (event.target?.result) {
                     try {
-                        const pdf = (await import('pdf-parse')).default;
-                        const data = await pdf(event.target.result as ArrayBuffer);
-                        onPdfUpload(data.text);
+                        const arrayBuffer = event.target.result as ArrayBuffer;
+                        const base64String = Buffer.from(arrayBuffer).toString('base64');
+                        onPdfUpload(base64String);
                     } catch (error) {
-                        console.error("Failed to parse PDF", error);
-                        toast({ variant: "destructive", title: "PDF解析失败", description: "无法读取文件内容。" });
+                        console.error("Failed to read file", error);
+                        toast({ variant: "destructive", title: "文件读取失败", description: "无法读取文件内容。" });
                         setFileName(null);
                     }
                 }

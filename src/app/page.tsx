@@ -111,11 +111,11 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         }
     };
 
-    const handlePdfUpload = async (pdfText: string) => {
+    const handlePdfUpload = async (pdfContentBase64: string) => {
         setIsProcessing(true);
         toast({ title: "文件处理中", description: "AI正在从PDF中提取术语，请稍候..." });
         try {
-            const { extractedTerms } = await extractTermsFromPdf({ pdfContent: pdfText });
+            const { extractedTerms } = await extractTermsFromPdf({ pdfContentBase64 });
 
             if (!extractedTerms || extractedTerms.length === 0) {
                 toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });

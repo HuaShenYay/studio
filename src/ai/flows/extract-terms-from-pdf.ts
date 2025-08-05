@@ -9,9 +9,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import pdf from 'pdf-parse';
 
 const ExtractTermsInputSchema = z.object({
-  pdfContent: z.string().describe('从PDF文件提取的文本内容。'),
+  pdfContentBase64: z.string().describe('从PDF文件提取并以Base64编码的文本内容。'),
 });
 export type ExtractTermsInput = z.infer<typeof ExtractTermsInputSchema>;
 
@@ -31,7 +32,7 @@ export async function extractTermsFromPdf(input: ExtractTermsInput): Promise<Ext
 
 const prompt = ai.definePrompt({
   name: 'extractTermsPrompt',
-  input: {schema: ExtractTermsInputSchema},
+  input: {schema: z.object({pdfContent: z.string()})},
   output: {schema: ExtractTermsOutputSchema},
   prompt: `你是一个精通文学理论的AI助手。你的任务是从以下文本中识别并提取所有的文学术语及其对应的解释。
 
@@ -54,8 +55,15 @@ const extractTermsFlow = ai.defineFlow(
     inputSchema: ExtractTermsInputSchema,
     outputSchema: ExtractTermsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const pdfBuffer = Buffer.from(input.pdfContentBase64, 'base64');
+    const data = await pdf(pdfBuffer);
+
+    if (!data.text) {
+      return { extractedTerms: [] };
+    }
+
+    const {output} = await prompt({pdfContent: data.text});
     return output!;
   }
 );
