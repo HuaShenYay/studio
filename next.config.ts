@@ -25,8 +25,8 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
-    // Exclude fs module from client-side bundle
     if (!isServer) {
+      // Prevent fs module from being bundled on the client
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
