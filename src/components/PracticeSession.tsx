@@ -1,62 +1,115 @@
 "use client";
 
-import type { LiteraryTerm } from "@/types";
+import type { LiteraryTerm, TermGroup } from "@/types";
+import { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ExerciseCard from "@/components/ExerciseCard";
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit, BookCopy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type PracticeSessionProps = {
     terms: LiteraryTerm[];
     onUpdateTerm: (term: LiteraryTerm) => void;
     onDeleteTerm: (id: number) => void;
+    getGroups: () => Promise<TermGroup[]>;
 }
 
-export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm }: PracticeSessionProps) {
-    const reviewTerms = terms.filter(term => term.isDifficult);
+export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm, getGroups }: PracticeSessionProps) {
+    const [groups, setGroups] = useState<TermGroup[]>([]);
+    const [selectedGroup, setSelectedGroup] = useState<string>('all');
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                const fetchedGroups = await getGroups();
+                setGroups(fetchedGroups);
+            } catch (error) {
+                console.error("Failed to fetch groups:", error);
+                toast({
+                    variant: "destructive",
+                    title: "加载小组失败",
+                    description: "无法从服务器获取小组列表。",
+                });
+            }
+        };
+        fetchGroups();
+    }, [terms, getGroups, toast]); // Re-fetch groups when terms change
+
+    const filteredTerms = useMemo(() => {
+        if (selectedGroup === 'all') {
+            return terms;
+        }
+        return terms.filter(term => term.groupName === selectedGroup);
+    }, [terms, selectedGroup]);
+    
+    const reviewTerms = filteredTerms.filter(term => term.isDifficult);
+    const displayedTerms = (tab: 'all' | 'review') => tab === 'all' ? filteredTerms : reviewTerms;
+
+    const renderTermList = (termList: LiteraryTerm[], emptyMessage: { title: string, description: string }) => {
+        if (termList.length > 0) {
+            return (
+                <div className="space-y-4">
+                    {termList.map(term => (
+                        <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} />
+                    ))}
+                </div>
+            );
+        }
+        return (
+            <div className="text-center text-muted-foreground py-12 rounded-xl bg-card">
+                <p className="text-lg font-medium">{emptyMessage.title}</p>
+                <p className="mt-2 text-sm">{emptyMessage.description}</p>
+            </div>
+        );
+    };
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-center gap-4 mb-6 px-1">
-                 <div className="p-3 rounded-full bg-primary/10 text-primary">
-                    <BrainCircuit className="h-8 w-8" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 px-1">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-primary/10 text-primary">
+                        <BrainCircuit className="h-8 w-8" />
+                    </div>
+                    <div>
+                        <h2 className="text-3xl font-bold text-foreground">练习模式</h2>
+                        <p className="text-muted-foreground">通过自动生成的填空题进行练习。</p>
+                    </div>
                  </div>
-                 <div>
-                    <h2 className="text-3xl font-bold text-foreground">练习模式</h2>
-                    <p className="text-muted-foreground">通过自动生成的填空题进行练习。</p>
+                 <div className="flex items-center gap-2">
+                    <BookCopy className="h-5 w-5 text-muted-foreground" />
+                    <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                        <SelectTrigger className="w-full sm:w-[200px] bg-background">
+                            <SelectValue placeholder="选择一个小组" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">所有小组 ({terms.length})</SelectItem>
+                            {groups.map(group => (
+                                <SelectItem key={group.groupName} value={group.groupName}>
+                                    {group.groupName} ({group.count})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                  </div>
             </div>
             <Tabs defaultValue="all" className="w-full flex-grow">
                 <TabsList className="grid w-full grid-cols-2 bg-primary/10 p-1 h-auto">
-                    <TabsTrigger value="all" className="py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">全部术语 ({terms.length})</TabsTrigger>
+                    <TabsTrigger value="all" className="py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">全部术语 ({filteredTerms.length})</TabsTrigger>
                     <TabsTrigger value="review" className="py-2 data-[state=active]:bg-background data-[state=active]:text-foreground">复习列表 ({reviewTerms.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-6">
-                    {terms.length > 0 ? (
-                        <div className="space-y-4">
-                            {terms.map(term => (
-                                <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center text-muted-foreground py-12 rounded-xl bg-card">
-                            <p className="text-lg">还没有术语。</p>
-                            <p>请在上方添加一个以开始！</p>
-                        </div>
-                    )}
+                    {renderTermList(displayedTerms('all'), { 
+                        title: "这个小组没有术语。", 
+                        description: "请添加一些术语，或切换到别的小组。"
+                    })}
                 </TabsContent>
                 <TabsContent value="review" className="mt-6">
-                    {reviewTerms.length > 0 ? (
-                        <div className="space-y-4">
-                            {reviewTerms.map(term => (
-                                <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} />
-                            ))}
-                        </div>
-                    ) : (
-                         <div className="text-center text-muted-foreground py-12 rounded-xl bg-card">
-                            <p className="text-lg">您的复习列表中没有术语。</p>
-                            <p className="text-sm">用星标标记一个术语以将其添加到此处。</p>
-                        </div>
-                    )}
+                    {renderTermList(displayedTerms('review'), {
+                        title: "复习列表是空的。",
+                        description: "将小组中的术语标记为星号以在此处复习。"
+                    })}
                 </TabsContent>
             </Tabs>
         </div>

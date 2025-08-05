@@ -29,6 +29,7 @@ export type Database = {
           isDifficult: boolean
           status: 'unanswered' | 'correct' | 'incorrect'
           userAnswer: string
+          group_name: string | null
         },
         Insert: {
           id?: number
@@ -40,6 +41,7 @@ export type Database = {
           isDifficult?: boolean
           status?: 'unanswered' | 'correct' | 'incorrect'
           userAnswer?: string
+          group_name?: string | null
         },
         Update: {
           id?: number
@@ -51,6 +53,7 @@ export type Database = {
           isDifficult?: boolean
           status?: 'unanswered' | 'correct' | 'incorrect'
           userAnswer?: string
+          group_name?: string | null
         }
       }
     }

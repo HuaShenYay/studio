@@ -1,7 +1,7 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
-import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
+import type { LiteraryTerm, LiteraryTermCreate, TermGroup } from '@/types';
 import type { Database, Tables } from '@/lib/supabase';
 
 type LiteraryTermRow = Tables<'literary_terms'>;
@@ -14,6 +14,7 @@ const PDF_BUCKET = 'pdfs';
 const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
     ...row,
     createdAt: new Date(row.created_at),
+    groupName: row.group_name,
 });
 
 const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
@@ -25,6 +26,7 @@ const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
         isDifficult: termData.isDifficult,
         status: termData.status,
         userAnswer: termData.userAnswer,
+        group_name: termData.groupName,
     };
 };
 
@@ -113,9 +115,10 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
 }
 
 export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
-    const { id: termId, createdAt, ...rest } = termData;
+    const { id: termId, createdAt, groupName, ...rest } = termData;
     const supabaseData: LiteraryTermUpdate = {
-        ...rest
+        ...rest,
+        group_name: groupName
     };
 
     const { error } = await supabase
@@ -139,4 +142,29 @@ export async function deleteTerm(id: number): Promise<void> {
         console.error('Error deleting term:', error);
         throw new Error(`删除术语失败: ${error.message}`);
     }
+}
+
+export async function getGroups(): Promise<TermGroup[]> {
+    const { data, error } = await supabase
+        .from(TERMS_TABLE)
+        .select('group_name');
+
+    if (error) {
+        console.error('Error fetching groups:', error);
+        throw new Error(`获取小组列表失败: ${error.message}`);
+    }
+
+    if (!data) return [];
+    
+    const groupCounts = data.reduce((acc, { group_name }) => {
+        if (group_name) {
+            acc[group_name] = (acc[group_name] || 0) + 1;
+        }
+        return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(groupCounts).map(([groupName, count]) => ({
+        groupName,
+        count,
+    }));
 }

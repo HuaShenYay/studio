@@ -9,8 +9,9 @@ import PracticeSession from '@/components/PracticeSession';
 import PdfListView from '@/components/PdfListView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
-import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf } from '@/services/terms-service';
-import { extractTermsFromPdf } from '@/ai/flows/extract-terms-from-pdf';
+import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf, getGroups } from '@/services/terms-service';
+import { convertPdfToMarkdown } from '@/ai/flows/convert-pdf-to-markdown';
+import { extractTermsFromMarkdown } from '@/ai/flows/extract-terms-from-markdown';
 
 type View = 'practice' | 'add' | 'files';
 
@@ -69,15 +70,16 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const [currentView, setCurrentView] = useState<View>('practice');
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchTerms = async () => {
-            setIsLoading(true);
-            const fetchedTerms = await getTerms();
-            setTerms(fetchedTerms);
-            setIsLoading(false);
-        };
-        fetchTerms();
+    const fetchTerms = useCallback(async () => {
+        setIsLoading(true);
+        const fetchedTerms = await getTerms();
+        setTerms(fetchedTerms);
+        setIsLoading(false);
     }, []);
+
+    useEffect(() => {
+        fetchTerms();
+    }, [fetchTerms]);
 
     const handleAddTerm = async (term: string, explanation: string) => {
         setIsProcessing(true);
@@ -91,6 +93,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 isDifficult: false,
                 status: 'unanswered',
                 userAnswer: '',
+                groupName: 'Manual',
             };
             const newTerm = await addTerm(newTermData);
             setTerms((prevTerms) => [newTerm, ...prevTerms]);
@@ -114,16 +117,29 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     
     const handleProcessPdf = async (publicUrl: string, fileName: string) => {
         setIsProcessing(true);
-        toast({ title: "AI正在处理中...", description: `正在从 ${fileName} 中提取术语，请稍候...` });
+        toast({ title: "AI正在处理中...", description: `步骤 1/3: 正在从 ${fileName} 转换到 Markdown...` });
 
         try {
-            const { extractedTerms } = await extractTermsFromPdf({ pdfUrl: publicUrl });
+            // Step 1: Convert PDF to Markdown
+            const { markdown } = await convertPdfToMarkdown({ pdfUrl: publicUrl });
+            if (!markdown) {
+                toast({ variant: "destructive", title: "转换失败", description: "AI 未能将 PDF 转换为 Markdown。" });
+                setIsProcessing(false);
+                return;
+            }
+            
+            toast({ title: "转换成功！", description: `步骤 2/3: 正在从 Markdown 中提取术语...` });
+
+            // Step 2: Extract terms from Markdown
+            const { extractedTerms } = await extractTermsFromMarkdown({ markdownContent: markdown });
+
             if (!extractedTerms || extractedTerms.length === 0) {
                 toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });
+                setIsProcessing(false);
                 return;
             }
 
-            toast({ title: "提取成功！", description: `AI识别出 ${extractedTerms.length} 个术语，正在为您生成练习...` });
+            toast({ title: "提取成功！", description: `步骤 3/3: 识别出 ${extractedTerms.length} 个术语，正在为您生成练习...` });
 
             let count = 0;
             const newTerms: LiteraryTerm[] = [];
@@ -138,6 +154,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                         isDifficult: false,
                         status: 'unanswered',
                         userAnswer: '',
+                        groupName: fileName,
                     };
                     const newTerm = await addTerm(newTermData);
                     newTerms.push(newTerm);
@@ -151,7 +168,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
             toast({
                 title: "批量导入完成！",
-                description: `成功添加了 ${count} 个新术语。`,
+                description: `成功添加了 ${count} 个新术语到小组“${fileName}”中。`,
             });
             setCurrentView('practice');
         } catch (error) {
@@ -183,7 +200,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 description: `${errorMessage}`,
             });
         } finally {
-            setIsProcessing(false);
+            // isProcessing will be set to false inside handleProcessPdf
         }
     };
 
@@ -201,8 +218,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 title: "出错了",
                 description: `更新术语失败: ${errorMessage}`,
             });
-            const fetchedTerms = await getTerms();
-            setTerms(fetchedTerms);
+            fetchTerms(); // Re-fetch to ensure consistency
         }
     };
 
@@ -239,7 +255,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
         switch (currentView) {
             case 'practice':
-                return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} />;
+                return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} getGroups={getGroups} />;
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} onPdfUpload={handlePdfUpload} isLoading={isProcessing} />;
             case 'files':

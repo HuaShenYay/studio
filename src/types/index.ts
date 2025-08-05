@@ -10,6 +10,12 @@ export interface LiteraryTerm {
   status: PracticeStatus;
   userAnswer: string;
   createdAt: Date;
+  groupName: string | null;
 }
 
 export type LiteraryTermCreate = Omit<LiteraryTerm, 'id' | 'createdAt'>;
+
+export interface TermGroup {
+    groupName: string;
+    count: number;
+}
