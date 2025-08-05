@@ -56,10 +56,11 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
             reader.onload = async (event) => {
                 if (event.target?.result) {
                     try {
-                        const pdfParser = (await import('pdf-parse/lib/pdf-parse.js')).default;
+                        const pdf = (await import('pdf-parse/dist/pdf.worker.min.js')).default;
+                        // pdf-parse/dist/pdf.worker.min.js is used to avoid fs module error in browser
                         // pdf-parse expects a Buffer
                         const buffer = Buffer.from(event.target.result as ArrayBuffer);
-                        const data = await pdfParser(buffer);
+                        const data = await pdf(buffer);
                         onPdfUpload(data.text);
                     } catch (error) {
                         console.error("Failed to parse PDF", error);
