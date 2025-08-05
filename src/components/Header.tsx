@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { BookOpen, NotebookTabs, PlusSquare, ScanText } from 'lucide-react';
+import { BookOpen, NotebookTabs, PlusSquare, ScanText, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ type View = 'practice' | 'add' | 'analysis';
 interface HeaderProps {
     currentView: View;
     setCurrentView: (view: View) => void;
+    onLogout: () => void;
 }
 
 const navItems: { view: View, label: string, icon: React.ElementType }[] = [
@@ -20,7 +21,7 @@ const navItems: { view: View, label: string, icon: React.ElementType }[] = [
     { view: 'analysis', label: '文本分析', icon: ScanText },
 ];
 
-export default function Header({ currentView, setCurrentView }: HeaderProps) {
+export default function Header({ currentView, setCurrentView, onLogout }: HeaderProps) {
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-16 max-w-screen-2xl items-center">
@@ -51,6 +52,22 @@ export default function Header({ currentView, setCurrentView }: HeaderProps) {
                                 </TooltipContent>
                             </Tooltip>
                         ))}
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={onLogout}
+                                    className="rounded-full h-10 w-10"
+                                >
+                                    <LogOut className="h-5 w-5" />
+                                    <span className="sr-only">登出</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>登出</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </TooltipProvider>
                 </div>
             </div>

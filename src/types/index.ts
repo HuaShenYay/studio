@@ -9,4 +9,7 @@ export interface LiteraryTerm {
   isDifficult: boolean;
   status: PracticeStatus;
   userAnswer: string;
+  createdAt: Date;
 }
+
+export type LiteraryTermCreate = Omit<LiteraryTerm, 'id' | 'createdAt'>;
