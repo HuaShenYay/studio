@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import pdf from 'pdf-parse';
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 const ExtractTermsInputSchema = z.object({
   pdfContentBase64: z.string().describe('从PDF文件提取并以Base64编码的文本内容。'),
