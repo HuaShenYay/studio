@@ -1,7 +1,7 @@
 export type PracticeStatus = 'unanswered' | 'correct' | 'incorrect';
 
 export interface LiteraryTerm {
-  id: string;
+  id: number;
   term: string;
   explanation: string;
   exercise: string;
