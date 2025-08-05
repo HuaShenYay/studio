@@ -55,7 +55,7 @@ export default function Home() {
             setIsLoading(false);
         };
         initializeTerms();
-    }, [toast]);
+    }, []);
 
     const handleAddTerm = async (term: string, explanation: string) => {
         setIsLoading(true);
