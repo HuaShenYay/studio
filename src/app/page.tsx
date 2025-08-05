@@ -101,10 +101,11 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             setCurrentView('practice');
         } catch (error) {
             console.error('Failed to add term:', error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
             toast({
                 variant: "destructive",
                 title: "出错了",
-                description: "添加术语失败。请检查您的网络连接或稍后重试。",
+                description: `添加术语失败: ${errorMessage}`,
             });
         } finally {
             setIsProcessing(false);
@@ -157,10 +158,11 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
         } catch (error) {
             console.error('Failed to process PDF:', error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
             toast({
                 variant: "destructive",
                 title: "PDF处理失败",
-                description: "AI在分析PDF时遇到问题，请检查文件内容或稍后再试。",
+                description: `AI在分析PDF时遇到问题: ${errorMessage}`,
             });
         } finally {
             setIsProcessing(false);
@@ -171,7 +173,20 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         setTerms((prevTerms) =>
             prevTerms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
         );
-        await updateTerm(updatedTerm.id, updatedTerm);
+        try {
+            await updateTerm(updatedTerm.id, updatedTerm);
+        } catch (error) {
+            console.error('Failed to update term:', error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: "destructive",
+                title: "出错了",
+                description: `更新术语失败: ${errorMessage}`,
+            });
+            // Revert UI change on failure
+            const fetchedTerms = await getTerms();
+            setTerms(fetchedTerms);
+        }
     };
 
     const renderContent = () => {
