@@ -1,13 +1,27 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { listPdfs } from '@/services/terms-service';
+import { listPdfs, deletePdf } from '@/services/terms-service';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FolderOpen, FileText, ExternalLink, Trash2 } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+
 
 interface PdfFile {
     id: string;
@@ -16,7 +30,7 @@ interface PdfFile {
     publicUrl: string;
 }
 
-function PdfCard({ file }: { file: PdfFile }) {
+function PdfCard({ file, onDelete }: { file: PdfFile; onDelete: (fileName: string) => void; }) {
     const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
     useEffect(() => {
@@ -28,6 +42,10 @@ function PdfCard({ file }: { file: PdfFile }) {
     const handleOpenFile = (url: string) => {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
+    
+    const handleDelete = () => {
+        onDelete(file.name);
+    }
 
     return (
         <Card>
@@ -42,13 +60,51 @@ function PdfCard({ file }: { file: PdfFile }) {
                     </div>
                 </div>
                 <div className="flex items-center shrink-0">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenFile(file.publicUrl)}
-                    >
-                        <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary"/>
-                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleOpenFile(file.publicUrl)}
+                                >
+                                    <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>在新标签页中打开</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                     <AlertDialog>
+                      <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" aria-label="删除文件">
+                                        <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive"/>
+                                    </Button>
+                                </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>删除文件</p>
+                            </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>您确定要删除此文件吗？</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            此操作无法撤销。这将从云端存储中永久删除文件 “<strong>{file.name}</strong>”。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({ variant: "destructive" }))}>删除</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </CardContent>
         </Card>
@@ -76,6 +132,24 @@ export default function PdfListView() {
             setIsLoading(false);
         }
     };
+    
+    const handleDeleteFile = async (fileName: string) => {
+        try {
+            await deletePdf(fileName);
+            toast({
+                title: "文件已删除",
+                description: `文件 ${fileName} 已被成功删除。`
+            });
+            fetchFiles(); // Refresh the list after deletion
+        } catch (error) {
+             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: "destructive",
+                title: "删除文件失败",
+                description: errorMessage,
+            });
+        }
+    }
 
     useEffect(() => {
         fetchFiles();
@@ -105,7 +179,7 @@ export default function PdfListView() {
             {files.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {files.map((file) => (
-                        <PdfCard key={file.id} file={file} />
+                        <PdfCard key={file.id} file={file} onDelete={handleDeleteFile} />
                     ))}
                 </div>
             ) : (

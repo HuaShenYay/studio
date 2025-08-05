@@ -71,6 +71,18 @@ export async function listPdfs() {
     return filesWithUrls;
 }
 
+export async function deletePdf(fileName: string): Promise<void> {
+    const { error } = await supabase.storage
+        .from(PDF_BUCKET)
+        .remove([fileName]);
+    
+    if (error) {
+        console.error('Error deleting file:', error);
+        throw new Error(`删除文件失败: ${error.message}`);
+    }
+}
+
+
 export async function addTerm(termData: LiteraryTermCreate): Promise<LiteraryTerm> {
     const supabaseData = toSupabase(termData);
     const { data, error } = await supabase

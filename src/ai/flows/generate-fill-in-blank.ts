@@ -29,7 +29,7 @@ const prompt = ai.definePrompt({
   name: 'generateFillInBlankExercisesPrompt',
   input: {schema: GenerateFillInBlankExercisesInputSchema},
   output: {schema: GenerateFillInBlankExercisesOutputSchema},
-  prompt: `根据以下文学术语及其解释，生成一个填空练习题。在句子中用 "____" 代替术语本身。
+  prompt: `根据以下文学术语及其解释，生成一个填空练习题。在句子中用 "____" (四个下划线) 代替术语本身。
 
 术语：{{term}}
 解释：{{explanation}}
