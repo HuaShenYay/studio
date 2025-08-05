@@ -4,7 +4,7 @@ import { Star, CheckCircle2, XCircle, ChevronRight, Trash2 } from 'lucide-react'
 import type { LiteraryTerm, PracticeStatus } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
