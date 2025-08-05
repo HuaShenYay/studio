@@ -16,20 +16,22 @@ const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
     createdAt: new Date(row.created_at),
 });
 
-const toSupabase = (term: Partial<Omit<LiteraryTerm, 'id' | 'createdAt'>> | LiteraryTermCreate): LiteraryTermInsert => {
+const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
     return {
-        term: term.term!,
-        explanation: term.explanation!,
-        exercise: term.exercise!,
-        answer: term.answer!,
-        isDifficult: term.isDifficult || false,
-        status: term.status || 'unanswered',
-        userAnswer: term.userAnswer || '',
+        term: termData.term,
+        explanation: termData.explanation,
+        exercise: termData.exercise,
+        answer: termData.answer,
+        isDifficult: termData.isDifficult,
+        status: termData.status,
+        userAnswer: termData.userAnswer,
     };
 };
 
 export async function uploadPdf(file: File): Promise<{ publicUrl: string }> {
-    const fileName = `${crypto.randomUUID()}-${file.name}`;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    
     const { data, error } = await supabase.storage
         .from(PDF_BUCKET)
         .upload(fileName, file, {
