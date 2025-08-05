@@ -11,15 +11,19 @@ const fromSupabase = (row: Tables<'literary_terms'>): LiteraryTerm => ({
     createdAt: new Date(row.created_at),
 });
 
-const toSupabase = (term: Partial<LiteraryTerm>): Partial<Tables<'literary_terms'>> => {
-    const { createdAt, ...rest } = term;
+// This function now correctly handles both creation and updates.
+// For creation, it takes a LiteraryTermCreate object.
+// For updates, it can take a Partial<LiteraryTerm>.
+const toSupabase = (term: Partial<LiteraryTerm> | LiteraryTermCreate): Omit<Tables<'literary_terms'>, 'id' | 'created_at'> => {
+    const { id, createdAt, ...rest } = term as LiteraryTerm;
     return rest;
 };
 
 export async function addTerm(termData: LiteraryTermCreate): Promise<LiteraryTerm> {
+    const supabaseData = toSupabase(termData);
     const { data, error } = await supabase
         .from(TERMS_TABLE)
-        .insert(toSupabase(termData) as any)
+        .insert(supabaseData)
         .select()
         .single();
 
@@ -45,9 +49,10 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
 }
 
 export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
+    const supabaseData = toSupabase(termData);
     const { error } = await supabase
         .from(TERMS_TABLE)
-        .update(toSupabase(termData) as any)
+        .update(supabaseData)
         .eq('id', id);
 
     if (error) {
