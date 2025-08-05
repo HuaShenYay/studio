@@ -7,12 +7,13 @@ import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
 import TextAnalysis from '@/components/TextAnalysis';
+import ProblemDetection from '@/components/ProblemDetection';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
-import { addTerm, getTerms, updateTerm } from '@/services/terms-service';
+import { addTerm, getTerms, updateTerm, deleteTerm } from '@/services/terms-service';
 import { extractTermsFromPdf } from '@/ai/flows/extract-terms-from-pdf';
 
-type View = 'practice' | 'add' | 'analysis';
+type View = 'practice' | 'add' | 'analysis' | 'detection';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
@@ -105,7 +106,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             toast({
                 variant: "destructive",
                 title: "出错了",
-                description: `添加术语失败: ${errorMessage}`,
+                description: `${errorMessage}`,
             });
         } finally {
             setIsProcessing(false);
@@ -162,7 +163,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             toast({
                 variant: "destructive",
                 title: "PDF处理失败",
-                description: `AI在分析PDF时遇到问题: ${errorMessage}`,
+                description: `${errorMessage}`,
             });
         } finally {
             setIsProcessing(false);
@@ -183,9 +184,29 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 title: "出错了",
                 description: `更新术语失败: ${errorMessage}`,
             });
-            // Revert UI change on failure
             const fetchedTerms = await getTerms();
             setTerms(fetchedTerms);
+        }
+    };
+
+    const handleDeleteTerm = async (id: number) => {
+        const originalTerms = [...terms];
+        setTerms(prevTerms => prevTerms.filter(t => t.id !== id));
+        try {
+            await deleteTerm(id);
+            toast({
+                title: "术语已删除",
+                description: "该术语已从您的资料库中移除。",
+            });
+        } catch (error) {
+            console.error('Failed to delete term:', error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: "destructive",
+                title: "删除失败",
+                description: errorMessage,
+            });
+            setTerms(originalTerms);
         }
     };
 
@@ -201,11 +222,13 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
         switch (currentView) {
             case 'practice':
-                return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} />;
+                return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} />;
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} onPdfUpload={handlePdfUpload} isLoading={isProcessing} />;
             case 'analysis':
                 return <TextAnalysis />;
+            case 'detection':
+                return <ProblemDetection />;
         }
     }
 

@@ -8,9 +8,10 @@ import { BrainCircuit } from 'lucide-react';
 type PracticeSessionProps = {
     terms: LiteraryTerm[];
     onUpdateTerm: (term: LiteraryTerm) => void;
+    onDeleteTerm: (id: number) => void;
 }
 
-export default function PracticeSession({ terms, onUpdateTerm }: PracticeSessionProps) {
+export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm }: PracticeSessionProps) {
     const reviewTerms = terms.filter(term => term.isDifficult);
 
     return (
@@ -33,7 +34,7 @@ export default function PracticeSession({ terms, onUpdateTerm }: PracticeSession
                     {terms.length > 0 ? (
                         <div className="space-y-4">
                             {terms.map(term => (
-                                <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} />
+                                <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} />
                             ))}
                         </div>
                     ) : (
@@ -47,7 +48,7 @@ export default function PracticeSession({ terms, onUpdateTerm }: PracticeSession
                     {reviewTerms.length > 0 ? (
                         <div className="space-y-4">
                             {reviewTerms.map(term => (
-                                <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} />
+                                <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} />
                             ))}
                         </div>
                     ) : (

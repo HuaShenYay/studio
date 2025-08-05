@@ -5,3 +5,4 @@ import '@/ai/flows/generate-fill-in-blank.ts';
 import '@/ai/flows/generate-explanation.ts';
 import '@/ai/flows/analyze-text.ts';
 import '@/ai/flows/extract-terms-from-pdf.ts';
+import '@/ai/flows/detect-problems.ts';

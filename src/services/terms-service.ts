@@ -2,7 +2,10 @@
 
 import { supabase } from '@/lib/supabase';
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
-import type { Tables } from '@/lib/supabase';
+import type { Database, Tables } from '@/lib/supabase';
+
+type LiteraryTermInsert = Database['public']['Tables']['literary_terms']['Insert'];
+type LiteraryTermUpdate = Database['public']['Tables']['literary_terms']['Update'];
 
 const TERMS_TABLE = 'literary_terms';
 
@@ -11,16 +14,16 @@ const fromSupabase = (row: Tables<'literary_terms'>): LiteraryTerm => ({
     createdAt: new Date(row.created_at),
 });
 
-// This function now correctly handles both creation and updates.
-const toSupabase = (term: Partial<LiteraryTerm> | LiteraryTermCreate) => {
-    const supabaseData: Omit<Tables<'literary_terms'>, 'id' | 'created_at'> = {
-        term: term.term!,
-        explanation: term.explanation!,
-        exercise: term.exercise!,
-        answer: term.answer!,
-        isDifficult: term.isDifficult || false,
-        status: term.status || 'unanswered',
-        userAnswer: term.userAnswer || '',
+const toSupabase = (term: Partial<LiteraryTerm> | LiteraryTermCreate): LiteraryTermInsert => {
+    const { id, createdAt, ...rest } = term as LiteraryTerm;
+    const supabaseData: LiteraryTermInsert = {
+        term: rest.term!,
+        explanation: rest.explanation!,
+        exercise: rest.exercise!,
+        answer: rest.answer!,
+        isDifficult: rest.isDifficult || false,
+        status: rest.status || 'unanswered',
+        userAnswer: rest.userAnswer || '',
     };
     return supabaseData;
 };
@@ -56,12 +59,10 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
 }
 
 export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
-    // We can't just use toSupabase here because it requires fields that might be missing in a partial update.
-    const { createdAt, term, ...rest } = termData;
-    const supabaseData: Partial<Omit<Tables<'literary_terms'>, 'id' | 'created_at'>> = {
+    const { id: termId, createdAt, ...rest } = termData;
+    const supabaseData: LiteraryTermUpdate = {
         ...rest
     };
-     if (term) supabaseData.term = term;
 
     const { error } = await supabase
         .from(TERMS_TABLE)
@@ -71,5 +72,17 @@ export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): P
     if (error) {
         console.error('Error updating term:', error);
         throw new Error(`更新术语失败: ${error.message}`);
+    }
+}
+
+export async function deleteTerm(id: number): Promise<void> {
+    const { error } = await supabase
+        .from(TERMS_TABLE)
+        .delete()
+        .eq('id', id);
+    
+    if (error) {
+        console.error('Error deleting term:', error);
+        throw new Error(`删除术语失败: ${error.message}`);
     }
 }

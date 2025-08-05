@@ -1,19 +1,32 @@
 "use client";
 import { useState } from 'react';
-import { Star, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import { Star, CheckCircle2, XCircle, ChevronRight, Trash2 } from 'lucide-react';
 import type { LiteraryTerm, PracticeStatus } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 type ExerciseCardProps = {
     termData: LiteraryTerm;
     onUpdate: (term: LiteraryTerm) => void;
+    onDelete: (id: number) => void;
 };
 
-export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) {
+export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseCardProps) {
     const [userAnswer, setUserAnswer] = useState(termData.userAnswer);
     const [status, setStatus] = useState<PracticeStatus>(termData.status);
 
@@ -32,6 +45,10 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
     const handleToggleDifficult = () => {
         onUpdate({ ...termData, isDifficult: !termData.isDifficult });
     };
+
+    const handleDelete = () => {
+        onDelete(termData.id);
+    }
 
     const borderColorClass = {
         correct: 'border-green-500/50 dark:border-green-400/50',
@@ -98,23 +115,54 @@ export default function ExerciseCard({ termData, onUpdate }: ExerciseCardProps) 
                  <div className="text-xs text-muted-foreground">
                     术语: <strong>{termData.term}</strong>
                  </div>
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleToggleDifficult}
-                                aria-label={termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}
-                            >
-                                <Star className={cn("h-5 w-5 transition-colors", termData.isDifficult ? 'text-yellow-500 fill-yellow-400' : 'text-muted-foreground hover:text-yellow-500')}/>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                 <div className='flex items-center'>
+                     <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                 <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleToggleDifficult}
+                                    aria-label={termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}
+                                >
+                                    <Star className={cn("h-5 w-5 transition-colors", termData.isDifficult ? 'text-yellow-500 fill-yellow-400' : 'text-muted-foreground hover:text-yellow-500')}/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{termData.isDifficult ? '从复习列表中移除' : '添加到复习列表'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    <AlertDialog>
+                      <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" aria-label="删除术语">
+                                        <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive"/>
+                                    </Button>
+                                </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>删除术语</p>
+                            </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>您确定要删除吗？</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            此操作无法撤销。这将从您的资料库中永久删除术语 “<strong>{termData.term}</strong>” 及其相关的练习。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({ variant: "destructive" }))}>删除</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </CardFooter>
         </Card>
     );
