@@ -31,7 +31,7 @@ export default function InteractiveCritique({ originalText, suggestions }: Inter
 
     return (
         <TooltipProvider>
-            <p className="text-base whitespace-pre-wrap leading-relaxed">
+            <div className="text-base whitespace-pre-wrap leading-relaxed">
                 {parts.map((part, index) => {
                     const suggestion = suggestions.find(s => s.originalSegment === part);
                     if (suggestion) {
@@ -55,7 +55,7 @@ export default function InteractiveCritique({ originalText, suggestions }: Inter
                     }
                     return <span key={index}>{part}</span>;
                 })}
-            </p>
+            </div>
         </TooltipProvider>
     );
 }
