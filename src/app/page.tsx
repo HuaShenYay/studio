@@ -9,7 +9,7 @@ import PracticeSession from '@/components/PracticeSession';
 import PdfListView from '@/components/PdfListView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
-import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf, getGroups } from '@/services/terms-service';
+import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf, getGroups, resetAllTerms } from '@/services/terms-service';
 import { convertPdfToMarkdown } from '@/ai/flows/convert-pdf-to-markdown';
 import { extractTermsFromMarkdown } from '@/ai/flows/extract-terms-from-markdown';
 
@@ -19,6 +19,8 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    const { toast } = useToast();
 
     const handleLogout = useCallback(() => {
         sessionStorage.removeItem('isAuthenticated');
@@ -27,27 +29,46 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     }, [router]);
 
     useEffect(() => {
-        const loggedIn = searchParams.get('loggedin') === 'true';
-        if (loggedIn) {
-            sessionStorage.setItem('isAuthenticated', 'true');
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
-            setIsAuthenticated(true);
-        } else {
-            const sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+        const performAuth = async () => {
+            const loggedIn = searchParams.get('loggedin') === 'true';
+            let sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
+
+            if (loggedIn) {
+                sessionStorage.setItem('isAuthenticated', 'true');
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+                sessionAuth = true;
+            }
+
             if (sessionAuth) {
                 setIsAuthenticated(true);
+                try {
+                    // Reset all terms before fetching them
+                    await resetAllTerms();
+                    setIsReady(true);
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+                    toast({
+                        variant: "destructive",
+                        title: "重置练习失败",
+                        description: `无法开始新的练习会话: ${errorMessage}`,
+                    });
+                    // Still show the app, but with potentially old data
+                    setIsReady(true);
+                }
             } else {
                 router.push('/login');
             }
-        }
-    }, [searchParams, router]);
+        };
 
-    if (!isAuthenticated) {
+        performAuth();
+    }, [searchParams, router, toast]);
+
+    if (!isAuthenticated || !isReady) {
         return (
             <div className="flex h-screen w-full flex-col items-center justify-center gap-4 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-lg">正在验证身份...</p>
+                <p className="text-lg">正在准备您的学习环境...</p>
             </div>
         );
     }

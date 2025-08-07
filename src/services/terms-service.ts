@@ -122,7 +122,6 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
     }
 }
 
-
 export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
     const { id: termId, createdAt, groupName, ...rest } = termData;
     const supabaseData: LiteraryTermUpdate = {
@@ -176,4 +175,16 @@ export async function getGroups(): Promise<TermGroup[]> {
         groupName,
         count,
     }));
+}
+
+export async function resetAllTerms(): Promise<void> {
+    const { error } = await supabase
+        .from(TERMS_TABLE)
+        .update({ status: 'unanswered', userAnswer: '' })
+        .neq('status', 'unanswered'); // Only update if not already unanswered.
+
+    if (error) {
+        console.error('Error resetting terms:', error);
+        throw new Error(`重置所有术语失败: ${error.message}`);
+    }
 }

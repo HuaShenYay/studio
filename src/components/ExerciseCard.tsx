@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, CheckCircle2, XCircle, ChevronRight, Trash2, Lightbulb } from 'lucide-react';
 import type { LiteraryTerm, PracticeStatus } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -29,6 +29,11 @@ type ExerciseCardProps = {
 export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseCardProps) {
     const [userAnswer, setUserAnswer] = useState(termData.userAnswer);
     const [status, setStatus] = useState<PracticeStatus>(termData.status);
+
+    useEffect(() => {
+        setUserAnswer(termData.userAnswer);
+        setStatus(termData.status);
+    }, [termData]);
 
     const handleCheckAnswer = () => {
         const isCorrect = userAnswer.trim().toLowerCase() === termData.answer.trim().toLowerCase();
