@@ -5,10 +5,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ExerciseCard from "@/components/ExerciseCard";
-import { BrainCircuit, BookCopy, Settings } from 'lucide-react';
+import { BrainCircuit, BookCopy, Settings, PlusSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ManageGroupsDialog from "./ManageGroupsDialog";
 import { Button } from "./ui/button";
+import AddTermDialog from "./AddTermDialog";
 
 type PracticeSessionProps = {
     terms: LiteraryTerm[];
@@ -17,6 +18,8 @@ type PracticeSessionProps = {
     getGroups: () => Promise<TermGroup[]>;
     onRenameGroup: (oldName: string, newName: string) => Promise<void>;
     onDeleteGroup: (groupName: string) => Promise<void>;
+    onAddTerm: (term: string, explanation: string, groupName: string | null) => Promise<boolean>;
+    isAddingTerm: boolean;
 }
 
 export default function PracticeSession({ 
@@ -25,11 +28,14 @@ export default function PracticeSession({
     onDeleteTerm, 
     getGroups,
     onRenameGroup,
-    onDeleteGroup
+    onDeleteGroup,
+    onAddTerm,
+    isAddingTerm
 }: PracticeSessionProps) {
     const [groups, setGroups] = useState<TermGroup[]>([]);
     const [selectedGroup, setSelectedGroup] = useState<string>('all');
     const [isManageGroupsOpen, setIsManageGroupsOpen] = useState(false);
+    const [isAddTermOpen, setIsAddTermOpen] = useState(false);
     const { toast } = useToast();
 
     const fetchGroups = useCallback(async () => {
@@ -92,26 +98,30 @@ export default function PracticeSession({
                         <p className="text-muted-foreground">通过自动生成的填空题进行练习。</p>
                     </div>
                  </div>
-                 <div className="flex items-center gap-2">
-                    <BookCopy className="h-5 w-5 text-muted-foreground" />
-                    <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                        <SelectTrigger className="w-full sm:w-[200px] bg-background">
-                            <SelectValue placeholder="选择一个小组" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">所有分组 ({terms.length})</SelectItem>
-                            {groups.map(group => (
-                                <SelectItem key={group.groupName} value={group.groupName}>
-                                    {group.groupName} ({group.count})
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                     <Button variant="ghost" size="icon" onClick={() => setIsManageGroupsOpen(true)}>
-                        <Settings className="h-5 w-5" />
-                        <span className="sr-only">管理分组</span>
-                     </Button>
-                 </div>
+                 <Button onClick={() => setIsAddTermOpen(true)}>
+                    <PlusSquare className="mr-2 h-4 w-4" />
+                    添加新术语
+                 </Button>
+            </div>
+             <div className="flex items-center gap-2 mb-6">
+                <BookCopy className="h-5 w-5 text-muted-foreground" />
+                <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                    <SelectTrigger className="w-full sm:w-[200px] bg-background">
+                        <SelectValue placeholder="选择一个小组" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">所有分组 ({terms.length})</SelectItem>
+                        {groups.map(group => (
+                            <SelectItem key={group.groupName} value={group.groupName}>
+                                {group.groupName} ({group.count})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                    <Button variant="ghost" size="icon" onClick={() => setIsManageGroupsOpen(true)}>
+                    <Settings className="h-5 w-5" />
+                    <span className="sr-only">管理分组</span>
+                    </Button>
             </div>
             <Tabs defaultValue="all" className="w-full flex-grow">
                 <TabsList className="grid w-full grid-cols-2 bg-primary/10 p-1 h-auto">
@@ -138,6 +148,13 @@ export default function PracticeSession({
             groups={groups}
             onRenameGroup={onRenameGroup}
             onDeleteGroup={onDeleteGroup}
+        />
+        <AddTermDialog
+            open={isAddTermOpen}
+            onOpenChange={setIsAddTermOpen}
+            onAddTerm={onAddTerm}
+            isLoading={isAddingTerm}
+            getGroups={getGroups}
         />
         </>
     )

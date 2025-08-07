@@ -4,14 +4,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { generateFillInBlankExercise } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
-import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
 import WritingAdvisorView from '@/components/WritingAdvisorView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, renameGroup, deleteGroup as deleteGroupService } from '@/services/terms-service';
 
-type View = 'practice' | 'add' | 'advisor';
+type View = 'practice' | 'advisor';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
@@ -91,32 +90,21 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         }
     }, [toast]);
     
-    useEffect(() => {
+     useEffect(() => {
         const initializeSession = async () => {
             setIsLoading(true);
             try {
-                await resetAllTerms();
+                // This function now correctly resets all terms before fetching
+                await resetAllTerms(); 
                 const fetchedTerms = await getTerms();
                 setTerms(fetchedTerms);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
                 toast({
                     variant: "destructive",
-                    title: "重置练习失败",
-                    description: `无法开始新的练习会话: ${errorMessage}`,
+                    title: "初始化练习失败",
+                    description: errorMessage,
                 });
-                 // Still try to fetch terms even if reset fails
-                try {
-                    const fetchedTerms = await getTerms();
-                    setTerms(fetchedTerms);
-                } catch (fetchError) {
-                     const fetchErrorMessage = fetchError instanceof Error ? fetchError.message : '一个未知错误发生了。';
-                     toast({
-                        variant: "destructive",
-                        title: "加载术语失败",
-                        description: fetchErrorMessage,
-                    });
-                }
             } finally {
                 setIsLoading(false);
             }
@@ -126,6 +114,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             initializeSession();
         }
     }, [currentView, toast]);
+
 
     const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
@@ -147,7 +136,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 title: "术语已添加！",
                 description: `已成功为“${term}”创建练习并存入云端。`,
             });
-            setCurrentView('practice');
+            return true; // Indicate success
         } catch (error) {
             console.error('Failed to add term:', error);
             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
@@ -156,6 +145,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 title: "出错了",
                 description: `${errorMessage}`,
             });
+            return false; // Indicate failure
         } finally {
             setIsProcessing(false);
         }
@@ -175,18 +165,10 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         try {
             // Find what actually changed
             const changes: Partial<LiteraryTerm> = {};
-            if (updatedTerm.status !== originalTerm.status) {
-                changes.status = updatedTerm.status;
-            }
-            if (updatedTerm.userAnswer !== originalTerm.userAnswer) {
-                changes.userAnswer = updatedTerm.userAnswer;
-            }
-            if (updatedTerm.isDifficult !== originalTerm.isDifficult) {
-                changes.isDifficult = updatedTerm.isDifficult;
-            }
-            if (updatedTerm.groupName !== originalTerm.groupName) {
-                changes.groupName = updatedTerm.groupName;
-            }
+            if (updatedTerm.status !== originalTerm.status) changes.status = updatedTerm.status;
+            if (updatedTerm.userAnswer !== originalTerm.userAnswer) changes.userAnswer = updatedTerm.userAnswer;
+            if (updatedTerm.isDifficult !== originalTerm.isDifficult) changes.isDifficult = updatedTerm.isDifficult;
+            if (updatedTerm.groupName !== originalTerm.groupName) changes.groupName = updatedTerm.groupName;
             
             // Only call update if there are actual changes
             if (Object.keys(changes).length > 0) {
@@ -283,10 +265,10 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                         getGroups={getGroups}
                         onRenameGroup={handleRenameGroup}
                         onDeleteGroup={handleDeleteGroup}
+                        onAddTerm={handleAddTerm}
+                        isAddingTerm={isProcessing}
                     />
                 );
-            case 'add':
-                return <AddTermView onAddTerm={handleAddTerm} isLoading={isProcessing} getGroups={getGroups} />;
             case 'advisor':
                 return <WritingAdvisorView />;
         }

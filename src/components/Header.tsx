@@ -2,12 +2,12 @@
 "use client";
 
 import React from 'react';
-import { BookOpen, NotebookTabs, PlusSquare, LogOut, Feather } from 'lucide-react';
+import { BookOpen, NotebookTabs, LogOut, Feather } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
 
-type View = 'practice' | 'add' | 'advisor';
+type View = 'practice' | 'advisor';
 
 interface HeaderProps {
     currentView: View;
@@ -17,7 +17,6 @@ interface HeaderProps {
 
 const navItems: { view: View, label: string, icon: React.ElementType }[] = [
     { view: 'practice', label: '练习模式', icon: NotebookTabs },
-    { view: 'add', label: '添加术语', icon: PlusSquare },
     { view: 'advisor', label: '写作指导', icon: Feather },
 ];
 
