@@ -134,11 +134,35 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     };
     
     const handleUpdateTerm = async (updatedTerm: LiteraryTerm) => {
+        const originalTerms = [...terms];
+        const originalTerm = originalTerms.find(t => t.id === updatedTerm.id);
+        
+        // Optimistically update UI
         setTerms((prevTerms) =>
             prevTerms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
         );
+
+        if (!originalTerm) return;
+
         try {
-            await updateTerm(updatedTerm.id, updatedTerm);
+            // Find what actually changed
+            const changes: Partial<LiteraryTerm> = {};
+            if (updatedTerm.status !== originalTerm.status) {
+                changes.status = updatedTerm.status;
+            }
+            if (updatedTerm.userAnswer !== originalTerm.userAnswer) {
+                changes.userAnswer = updatedTerm.userAnswer;
+            }
+            if (updatedTerm.isDifficult !== originalTerm.isDifficult) {
+                changes.isDifficult = updatedTerm.isDifficult;
+            }
+            if (updatedTerm.groupName !== originalTerm.groupName) {
+                changes.groupName = updatedTerm.groupName;
+            }
+            // Only call update if there are actual changes
+            if (Object.keys(changes).length > 0) {
+              await updateTerm(updatedTerm.id, changes);
+            }
         } catch (error) {
             console.error('Failed to update term:', error);
             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
@@ -147,7 +171,8 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 title: "出错了",
                 description: `更新术语失败: ${errorMessage}`,
             });
-            fetchTerms(); // Re-fetch to ensure consistency
+            // Revert UI on error
+            setTerms(originalTerms);
         }
     };
 

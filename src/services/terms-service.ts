@@ -73,23 +73,21 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
     }
 }
 
-export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
+export async function updateTerm(id: number, changes: Partial<LiteraryTerm>): Promise<void> {
     const supabaseData: LiteraryTermUpdate = {};
 
-    // Only include fields that are explicitly provided in termData
-    if (termData.term !== undefined) supabaseData.term = termData.term;
-    if (termData.explanation !== undefined) supabaseData.explanation = termData.explanation;
-    if (termData.exercise !== undefined) supabaseData.exercise = termData.exercise;
-    if (termData.answer !== undefined) supabaseData.answer = termData.answer;
-    if (termData.isDifficult !== undefined) supabaseData.isDifficult = termData.isDifficult;
-    if (termData.status !== undefined) supabaseData.status = termData.status;
-    if (termData.userAnswer !== undefined) supabaseData.userAnswer = termData.userAnswer;
-    
-    // Handle groupName separately to allow setting it to null
-    if (termData.hasOwnProperty('groupName')) {
-        supabaseData.group_name = termData.groupName;
+    // Map frontend-friendly names to database column names
+    if (changes.status !== undefined) supabaseData.status = changes.status;
+    if (changes.userAnswer !== undefined) supabaseData.userAnswer = changes.userAnswer;
+    if (changes.isDifficult !== undefined) supabaseData.isDifficult = changes.isDifficult;
+    if (changes.hasOwnProperty('groupName')) {
+        supabaseData.group_name = changes.groupName;
     }
 
+    // if there are no actual changes, do not call the database
+    if (Object.keys(supabaseData).length === 0) {
+        return;
+    }
 
     const { error } = await supabase
         .from(TERMS_TABLE)
