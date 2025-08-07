@@ -101,18 +101,27 @@ export async function addTerm(termData: LiteraryTermCreate): Promise<LiteraryTer
 }
 
 export async function getTerms(): Promise<LiteraryTerm[]> {
-    const { data, error } = await supabase
-        .from(TERMS_TABLE)
-        .select('*')
-        .order('created_at', { ascending: false });
+    try {
+        const { data, error } = await supabase
+            .from(TERMS_TABLE)
+            .select('*')
+            .order('created_at', { ascending: false });
 
-    if (error) {
+        if (error) {
+            // Rethrow the error to be caught by the calling function
+            throw error;
+        }
+
+        // If data is null or undefined, return an empty array
+        return data ? data.map(fromSupabase) : [];
+    } catch (error) {
         console.error('Error fetching terms:', error);
-        return [];
+        // Ensure we throw a consistent error message
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        throw new Error(`获取术语列表失败: ${errorMessage}`);
     }
-
-    return data.map(fromSupabase);
 }
+
 
 export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
     const { id: termId, createdAt, groupName, ...rest } = termData;
