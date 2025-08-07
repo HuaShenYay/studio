@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import pdf from 'pdf-parse';
+
 
 // Define Zod schemas for input and output, but do not export them.
 const ConvertPdfToMarkdownInputSchema = z.object({
@@ -74,6 +74,8 @@ const convertPdfToMarkdownFlow = ai.defineFlow(
   },
   async input => {
     try {
+        const pdf = (await import('pdf-parse')).default;
+        
         // 1. Fetch the PDF from the URL
         const response = await fetch(input.pdfUrl);
         if (!response.ok) {
