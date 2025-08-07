@@ -1,6 +1,7 @@
 'use server';
 /**
- * @fileOverview Converts a PDF to Markdown format.
+ * @fileOverview Converts a PDF to a condensed Markdown file containing only key term explanations.
+ * This flow works in chunks to handle large documents efficiently.
  *
  * - convertPdfToMarkdown - Converts a PDF file to Markdown text.
  * - ConvertPdfToMarkdownInput - Input type for the function.
@@ -9,7 +10,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import pdf from 'pdf-parse';
 
+// Define Zod schemas for input and output, but do not export them.
 const ConvertPdfToMarkdownInputSchema = z.object({
   pdfUrl: z
     .string()
@@ -29,24 +32,39 @@ export type ConvertPdfToMarkdownOutput = z.infer<
   typeof ConvertPdfToMarkdownOutputSchema
 >;
 
+// Define a Zod schema for the intermediate step of extracting text from a chunk.
+const ExtractPossibleTermsOutputSchema = z.object({
+    possibleTermExplanations: z.array(z.string()).describe(
+        'An array of paragraphs that appear to be definitions or explanations of literary terms.'
+    ),
+});
+
+// Define the prompt for the intermediate extraction step.
+const extractPossibleTermsPrompt = ai.definePrompt({
+    name: 'extractPossibleTermsPrompt',
+    input: { schema: z.object({ textChunk: z.string() }) },
+    output: { schema: ExtractPossibleTermsOutputSchema },
+    prompt: `你是一个文学研究助理。你的任务是从以下文本块中，提取出所有可能是文学术语解释的段落。
+
+请遵循以下规则：
+1. 只提取那些看起来像是在定义或解释一个概念的完整段落。
+2. 忽略那些明显是叙事、举例或与术语定义无关的内容。
+3. 如果没有找到任何可能的术语解释，请返回一个空数组。
+
+文本块内容如下：
+---
+{{textChunk}}
+---
+`,
+});
+
+
 export async function convertPdfToMarkdown(
   input: ConvertPdfToMarkdownInput
 ): Promise<ConvertPdfToMarkdownOutput> {
   return convertPdfToMarkdownFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'convertPdfToMarkdownPrompt',
-  input: {schema: ConvertPdfToMarkdownInputSchema},
-  output: {schema: ConvertPdfToMarkdownOutputSchema},
-  prompt: `你是一个文档处理专家。请将以下 PDF 文档的内容完整地转换为格式清晰的 Markdown 文本。
-
-请保留原始的章节、标题、列表、表格和段落结构。
-
-PDF 文档内容如下：
-{{media url=pdfUrl}}
-`,
-});
 
 const convertPdfToMarkdownFlow = ai.defineFlow(
   {
@@ -56,18 +74,63 @@ const convertPdfToMarkdownFlow = ai.defineFlow(
   },
   async input => {
     try {
-      const {output} = await prompt(input);
-      if (!output) {
-        throw new Error('AI model did not return any content.');
-      }
-      return output;
+        // 1. Fetch the PDF from the URL
+        const response = await fetch(input.pdfUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+        }
+        const pdfBuffer = await response.arrayBuffer();
+
+        // 2. Parse the PDF to get text and page count
+        const data = await pdf(Buffer.from(pdfBuffer));
+        const numPages = data.numpages;
+
+        // 3. Process the PDF in chunks of 5 pages
+        const chunkSize = 5;
+        let allExplanations: string[] = [];
+
+        for (let i = 0; i < numPages; i += chunkSize) {
+            const chunkStart = i + 1;
+            const chunkEnd = Math.min(i + chunkSize, numPages);
+            console.log(`Processing pages ${chunkStart} to ${chunkEnd}...`);
+
+            // We can't directly get text for a page range, so we approximate
+            // by splitting the full text. A more precise method would be to
+            // render each page, but that is much more complex.
+            // This approach is a good balance.
+            const pages = data.text.split('\n\n').filter(p => p.trim() !== ''); // Heuristic page split
+            const textChunk = pages.slice(i, i + chunkSize).join('\n\n');
+
+            if (textChunk.trim().length === 0) {
+                continue;
+            }
+
+            // 4. Call AI to extract possible terms from the chunk
+            const { output } = await extractPossibleTermsPrompt({ textChunk });
+
+            if (output?.possibleTermExplanations) {
+                allExplanations.push(...output.possibleTermExplanations);
+            }
+        }
+
+        // 5. Combine all extracted explanations into a single Markdown string
+        if (allExplanations.length === 0) {
+            throw new Error('AI model did not find any potential term explanations in the document.');
+        }
+
+        const finalMarkdown = allExplanations
+            .map(exp => exp.trim())
+            .join('\n\n---\n\n');
+
+        return { markdown: finalMarkdown };
+
     } catch (error) {
-      console.error('Error converting PDF to Markdown:', error);
+      console.error('Error in convertPdfToMarkdownFlow:', error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'An unknown error occurred during PDF conversion.';
-      throw new Error(`AI模型转换PDF时出错: ${errorMessage}`);
+          : 'An unknown error occurred during PDF processing.';
+      throw new Error(`PDF处理工作流失败: ${errorMessage}`);
     }
   }
 );
