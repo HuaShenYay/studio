@@ -74,11 +74,16 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
 }
 
 export async function updateTerm(id: number, termData: Partial<LiteraryTerm>): Promise<void> {
-    const { id: termId, createdAt, groupName, ...rest } = termData;
-    const supabaseData: LiteraryTermUpdate = {
-        ...rest,
-        group_name: groupName
-    };
+    const supabaseData: LiteraryTermUpdate = {};
+
+    if (termData.term !== undefined) supabaseData.term = termData.term;
+    if (termData.explanation !== undefined) supabaseData.explanation = termData.explanation;
+    if (termData.exercise !== undefined) supabaseData.exercise = termData.exercise;
+    if (termData.answer !== undefined) supabaseData.answer = termData.answer;
+    if (termData.isDifficult !== undefined) supabaseData.isDifficult = termData.isDifficult;
+    if (termData.status !== undefined) supabaseData.status = termData.status;
+    if (termData.userAnswer !== undefined) supabaseData.userAnswer = termData.userAnswer;
+    if (termData.groupName !== undefined) supabaseData.group_name = termData.groupName;
 
     const { error } = await supabase
         .from(TERMS_TABLE)
