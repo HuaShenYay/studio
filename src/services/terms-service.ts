@@ -163,9 +163,13 @@ export async function deleteGroup(groupName: string): Promise<void> {
 }
 
 export async function resetAllTerms(): Promise<void> {
+    // By default, Supabase PostgREST prevents whole-table updates.
+    // We can bypass this by providing a filter that matches all rows,
+    // such as a non-equality check on a primary key.
     const { error } = await supabase
         .from(TERMS_TABLE)
-        .update({ status: 'unanswered', userAnswer: '' });
+        .update({ status: 'unanswered', userAnswer: '' })
+        .neq('id', -1); // This condition effectively targets all rows
     
     if (error) {
         console.error('Error resetting terms:', error);
