@@ -10,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const literaryStyles = ["海明威风格", "意识流", "网络文学"] as const;
+const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
 const LiteraryStyleSchema = z.enum(literaryStyles);
 export type LiteraryStyle = z.infer<typeof LiteraryStyleSchema>;
 

@@ -23,7 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const literaryStyles = ["海明威风格", "意识流", "网络文学"] as const;
+const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
 
 const formSchema = z.object({
     textToCritique: z.string().min(50, {
@@ -45,7 +45,7 @@ export default function WritingAdvisorView() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             textToCritique: "",
-            style: "海明威风格",
+            style: "海明威极简主义",
         },
     });
 
