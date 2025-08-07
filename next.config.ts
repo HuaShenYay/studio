@@ -24,6 +24,13 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  webpack: (config, {isServer}) => {
+    if (isServer) {
+      config.externals.push('canvas');
+      config.externals.push('sharp');
+    }
+    return config
+  },
 };
 
 export default nextConfig;
