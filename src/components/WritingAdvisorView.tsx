@@ -3,14 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Feather, Loader2, Wand2 } from "lucide-react";
+import { Feather, Loader2, Wand2, BotMessageSquare, BookCheck, ChevronsRight, Drama, BrainCircuit, Rocket } from "lucide-react";
 import { useState } from "react";
 import { critiqueWriting } from "@/ai/flows/critique-writing";
 import type { CritiqueWritingOutput, LiteraryStyle } from "@/ai/flows/critique-writing";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Form,
     FormControl,
@@ -23,6 +23,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import InteractiveCritique from "./InteractiveCritique";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
 
@@ -73,6 +75,15 @@ export default function WritingAdvisorView() {
             setIsLoading(false);
         }
     }
+    
+    const evaluationModules = result ? [
+        { title: '主题与立意', content: result.evaluation.themeAndIntention, icon: BotMessageSquare },
+        { title: '结构与逻辑', content: result.evaluation.structureAndLogic, icon: ChevronsRight },
+        { title: '语言与表达', content: result.evaluation.languageAndExpression, icon: BookCheck },
+        { title: '人物与形象', content: result.evaluation.charactersAndImagery, icon: Drama },
+        { title: '情节与节奏', content: result.evaluation.plotAndPacing, icon: BrainCircuit },
+        { title: '创新性与独特性', content: result.evaluation.innovationAndUniqueness, icon: Rocket },
+    ] : [];
 
     return (
         <div>
@@ -152,16 +163,31 @@ export default function WritingAdvisorView() {
                         <CardTitle className="text-2xl">AI 写作分析报告</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div>
-                            <h3 className="text-xl font-semibold mb-4 border-b pb-2">综合评价</h3>
-                            <p className="text-base whitespace-pre-wrap leading-relaxed">{result.evaluation}</p>
-                        </div>
                          <div>
-                            <h3 className="text-xl font-semibold mb-4 border-b pb-2">修改建议 (将鼠标悬浮于高亮文本上查看)</h3>
+                            <h3 className="text-xl font-semibold mb-4 border-b pb-2">具体修改建议 (将鼠标悬浮于高亮文本上查看)</h3>
                              <InteractiveCritique
                                 originalText={originalText}
                                 suggestions={result.suggestions}
                             />
+                        </div>
+
+                        <div>
+                             <h3 className="text-xl font-semibold mb-4 border-b pb-2">综合评价</h3>
+                             <Accordion type="multiple" defaultValue={evaluationModules.map(m => m.title)} className="w-full">
+                                {evaluationModules.map((module) => (
+                                    <AccordionItem value={module.title} key={module.title}>
+                                        <AccordionTrigger className="text-lg font-medium hover:no-underline">
+                                            <div className="flex items-center gap-3">
+                                                <module.icon className="h-5 w-5 text-primary" />
+                                                {module.title}
+                                            </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="text-base whitespace-pre-wrap leading-relaxed pl-3 border-l-2 ml-3">
+                                            {module.content}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
                         </div>
                     </CardContent>
                 </Card>
