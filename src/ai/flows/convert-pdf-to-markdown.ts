@@ -80,42 +80,51 @@ const convertPdfToMarkdownFlow = ai.defineFlow(
             throw new Error(`Failed to fetch PDF: ${response.statusText}`);
         }
         const pdfBuffer = await response.arrayBuffer();
-
+        
         // 2. Parse the PDF to get text and page count
-        const data = await pdf(Buffer.from(pdfBuffer));
+        // Crucially, pdf-parse expects a Node.js Buffer, not an ArrayBuffer.
+        const nodeBuffer = Buffer.from(pdfBuffer);
+        const data = await pdf(nodeBuffer);
         const numPages = data.numpages;
 
         // 3. Process the PDF in chunks of 5 pages
         const chunkSize = 5;
         let allExplanations: string[] = [];
+        let currentPageText = '';
+        let pageCounter = 0;
 
-        for (let i = 0; i < numPages; i += chunkSize) {
-            const chunkStart = i + 1;
-            const chunkEnd = Math.min(i + chunkSize, numPages);
-            console.log(`Processing pages ${chunkStart} to ${chunkEnd}...`);
+        // Split text by form feed character which often separates pages
+        const pages = data.text.split(/\f/g);
 
-            // We can't directly get text for a page range, so we approximate
-            // by splitting the full text. A more precise method would be to
-            // render each page, but that is much more complex.
-            // This approach is a good balance.
-            const pages = data.text.split('\n\n').filter(p => p.trim() !== ''); // Heuristic page split
-            const textChunk = pages.slice(i, i + chunkSize).join('\n\n');
+        for (let i = 0; i < pages.length; i++) {
+            currentPageText += pages[i] + '\n\n';
+            pageCounter++;
 
-            if (textChunk.trim().length === 0) {
-                continue;
-            }
+            if (pageCounter === chunkSize || i === pages.length - 1) {
+                 console.log(`Processing pages...`);
+                
+                if (currentPageText.trim().length === 0) {
+                    pageCounter = 0;
+                    currentPageText = '';
+                    continue;
+                }
 
-            // 4. Call AI to extract possible terms from the chunk
-            const { output } = await extractPossibleTermsPrompt({ textChunk });
+                // 4. Call AI to extract possible terms from the chunk
+                const { output } = await extractPossibleTermsPrompt({ textChunk: currentPageText });
 
-            if (output?.possibleTermExplanations) {
-                allExplanations.push(...output.possibleTermExplanations);
+                if (output?.possibleTermExplanations) {
+                    allExplanations.push(...output.possibleTermExplanations);
+                }
+                
+                // Reset for the next chunk
+                pageCounter = 0;
+                currentPageText = '';
             }
         }
 
         // 5. Combine all extracted explanations into a single Markdown string
         if (allExplanations.length === 0) {
-            throw new Error('AI model did not find any potential term explanations in the document.');
+            return { markdown: 'AI模型未在文档中发现任何潜在的术语解释。' };
         }
 
         const finalMarkdown = allExplanations
