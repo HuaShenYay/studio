@@ -11,11 +11,16 @@ type LiteraryTermUpdate = Database['public']['Tables']['literary_terms']['Update
 const TERMS_TABLE = 'literary_terms';
 
 const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
-    ...row,
+    id: row.id,
     createdAt: new Date(row.created_at),
-    groupName: row.group_name,
+    term: row.term,
+    explanation: row.explanation,
+    exercise: row.exercise,
     answers: Array.isArray(row.answers) ? row.answers : [],
+    isDifficult: row.isDifficult,
+    status: row.status,
     userAnswers: Array.isArray(row.userAnswers) ? row.userAnswers : [],
+    groupName: row.group_name,
 });
 
 const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
