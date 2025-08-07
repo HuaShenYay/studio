@@ -123,6 +123,31 @@ export async function getGroups(): Promise<TermGroup[]> {
     }));
 }
 
+export async function renameGroup(oldName: string, newName: string): Promise<void> {
+    const { error } = await supabase
+        .from(TERMS_TABLE)
+        .update({ group_name: newName })
+        .eq('group_name', oldName);
+    
+    if (error) {
+        console.error('Error renaming group: ', error);
+        throw new Error(`重命名分组失败: ${error.message}`);
+    }
+}
+
+export async function deleteGroup(groupName: string): Promise<void> {
+    // This will "delete" the group by un-assigning all terms from it.
+    const { error } = await supabase
+        .from(TERMS_TABLE)
+        .update({ group_name: null })
+        .eq('group_name', groupName);
+
+    if (error) {
+        console.error('Error deleting group: ', error);
+        throw new Error(`删除分组失败: ${error.message}`);
+    }
+}
+
 export async function resetAllTerms(): Promise<void> {
     const { data, error } = await supabase
         .from(TERMS_TABLE)

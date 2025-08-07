@@ -5,37 +5,50 @@ import { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ExerciseCard from "@/components/ExerciseCard";
-import { BrainCircuit, BookCopy } from 'lucide-react';
+import { BrainCircuit, BookCopy, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ManageGroupsDialog from "./ManageGroupsDialog";
+import { Button } from "./ui/button";
 
 type PracticeSessionProps = {
     terms: LiteraryTerm[];
     onUpdateTerm: (term: LiteraryTerm) => void;
     onDeleteTerm: (id: number) => void;
     getGroups: () => Promise<TermGroup[]>;
+    onRenameGroup: (oldName: string, newName: string) => Promise<void>;
+    onDeleteGroup: (groupName: string) => Promise<void>;
 }
 
-export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm, getGroups }: PracticeSessionProps) {
+export default function PracticeSession({ 
+    terms, 
+    onUpdateTerm, 
+    onDeleteTerm, 
+    getGroups,
+    onRenameGroup,
+    onDeleteGroup
+}: PracticeSessionProps) {
     const [groups, setGroups] = useState<TermGroup[]>([]);
     const [selectedGroup, setSelectedGroup] = useState<string>('all');
+    const [isManageGroupsOpen, setIsManageGroupsOpen] = useState(false);
     const { toast } = useToast();
 
+    const fetchGroups = useCallback(async () => {
+        try {
+            const fetchedGroups = await getGroups();
+            setGroups(fetchedGroups);
+        } catch (error) {
+            console.error("Failed to fetch groups:", error);
+            toast({
+                variant: "destructive",
+                title: "加载小组失败",
+                description: "无法从服务器获取小组列表。",
+            });
+        }
+    }, [getGroups, toast]);
+
     useEffect(() => {
-        const fetchGroups = async () => {
-            try {
-                const fetchedGroups = await getGroups();
-                setGroups(fetchedGroups);
-            } catch (error) {
-                console.error("Failed to fetch groups:", error);
-                toast({
-                    variant: "destructive",
-                    title: "加载小组失败",
-                    description: "无法从服务器获取小组列表。",
-                });
-            }
-        };
         fetchGroups();
-    }, [terms, getGroups, toast]); // Re-fetch groups when terms change
+    }, [terms, fetchGroups]); 
 
     const filteredTerms = useMemo(() => {
         if (selectedGroup === 'all') {
@@ -66,6 +79,7 @@ export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm, get
     };
 
     return (
+        <>
         <div className="h-full flex flex-col">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 px-1">
                  <div className="flex items-center gap-4">
@@ -92,6 +106,10 @@ export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm, get
                             ))}
                         </SelectContent>
                     </Select>
+                     <Button variant="ghost" size="icon" onClick={() => setIsManageGroupsOpen(true)}>
+                        <Settings className="h-5 w-5" />
+                        <span className="sr-only">管理分组</span>
+                     </Button>
                  </div>
             </div>
             <Tabs defaultValue="all" className="w-full flex-grow">
@@ -113,5 +131,13 @@ export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm, get
                 </TabsContent>
             </Tabs>
         </div>
+        <ManageGroupsDialog
+            open={isManageGroupsOpen}
+            onOpenChange={setIsManageGroupsOpen}
+            groups={groups}
+            onRenameGroup={onRenameGroup}
+            onDeleteGroup={onDeleteGroup}
+        />
+        </>
     )
 }

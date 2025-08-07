@@ -8,7 +8,7 @@ import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
-import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms } from '@/services/terms-service';
+import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, renameGroup, deleteGroup as deleteGroupService } from '@/services/terms-service';
 
 type View = 'practice' | 'add';
 
@@ -172,6 +172,43 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         }
     };
 
+    const handleRenameGroup = async (oldName: string, newName: string) => {
+        try {
+            await renameGroup(oldName, newName);
+            await fetchTerms(); // Refresh all terms to reflect the change
+            toast({
+                title: '分组已重命名',
+                description: `分组 “${oldName}” 已成功更名为 “${newName}”。`,
+            });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: 'destructive',
+                title: '重命名失败',
+                description: errorMessage,
+            });
+        }
+    };
+
+    const handleDeleteGroup = async (groupName: string) => {
+        try {
+            await deleteGroupService(groupName);
+            await fetchTerms(); // Refresh terms
+            toast({
+                title: '分组已删除',
+                description: `分组 “${groupName}” 已被删除，其下的术语已被设为未分组。`,
+            });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: 'destructive',
+                title: '删除分组失败',
+                description: errorMessage,
+            });
+        }
+    };
+
+
     const renderContent = () => {
         if (isLoading && currentView === 'practice') {
             return (
@@ -184,7 +221,16 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
         switch (currentView) {
             case 'practice':
-                return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} getGroups={getGroups} />;
+                return (
+                    <PracticeSession
+                        terms={terms}
+                        onUpdateTerm={handleUpdateTerm}
+                        onDeleteTerm={handleDeleteTerm}
+                        getGroups={getGroups}
+                        onRenameGroup={handleRenameGroup}
+                        onDeleteGroup={handleDeleteGroup}
+                    />
+                );
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} isLoading={isProcessing} getGroups={getGroups} />;
         }
