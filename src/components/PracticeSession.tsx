@@ -52,7 +52,7 @@ export default function PracticeSession({ terms, onUpdateTerm, onDeleteTerm, get
             return (
                 <div className="space-y-4">
                     {termList.map(term => (
-                        <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} />
+                        <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} groups={groups} />
                     ))}
                 </div>
             );

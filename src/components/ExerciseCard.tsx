@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { Star, CheckCircle2, XCircle, ChevronRight, Trash2, Lightbulb } from 'lucide-react';
-import type { LiteraryTerm, PracticeStatus } from '@/types';
+import type { LiteraryTerm, PracticeStatus, TermGroup } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Combobox } from '@/components/ui/combobox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,9 +25,10 @@ type ExerciseCardProps = {
     termData: LiteraryTerm;
     onUpdate: (term: LiteraryTerm) => void;
     onDelete: (id: number) => void;
+    groups: TermGroup[];
 };
 
-export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseCardProps) {
+export default function ExerciseCard({ termData, onUpdate, onDelete, groups = [] }: ExerciseCardProps) {
     const [userAnswer, setUserAnswer] = useState(termData.userAnswer);
     const [status, setStatus] = useState<PracticeStatus>(termData.status);
 
@@ -54,6 +56,10 @@ export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseC
     const handleDelete = () => {
         onDelete(termData.id);
     }
+    
+    const handleGroupChange = (newGroupName: string) => {
+        onUpdate({ ...termData, groupName: newGroupName });
+    };
 
     const borderColorClass = {
         correct: 'border-green-500/50 dark:border-green-400/50',
@@ -118,8 +124,16 @@ export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseC
                     {renderFeedback()}
                 </div>
             </CardContent>
-            <CardFooter className="bg-transparent dark:bg-background/20 px-6 py-3 flex justify-end items-center">
-                 <div className='flex items-center'>
+            <CardFooter className="bg-transparent dark:bg-background/20 px-4 py-2 flex justify-between items-center gap-4">
+                 <div className="flex-1 min-w-0">
+                     <Combobox
+                        options={groups.map(g => ({ label: `${g.groupName} (${g.count})`, value: g.groupName }))}
+                        value={termData.groupName || ''}
+                        onChange={handleGroupChange}
+                        entityName="分组"
+                    />
+                 </div>
+                 <div className='flex items-center flex-shrink-0'>
                      <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
