@@ -1,7 +1,7 @@
 "use client";
 
 import type { LiteraryTerm, TermGroup } from "@/types";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ExerciseCard from "@/components/ExerciseCard";
@@ -38,10 +38,11 @@ export default function PracticeSession({
             setGroups(fetchedGroups);
         } catch (error) {
             console.error("Failed to fetch groups:", error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
             toast({
                 variant: "destructive",
                 title: "加载小组失败",
-                description: "无法从服务器获取小组列表。",
+                description: `无法从服务器获取小组列表: ${errorMessage}`,
             });
         }
     }, [getGroups, toast]);
@@ -98,7 +99,7 @@ export default function PracticeSession({
                             <SelectValue placeholder="选择一个小组" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">所有小组 ({terms.length})</SelectItem>
+                            <SelectItem value="all">所有分组 ({terms.length})</SelectItem>
                             {groups.map(group => (
                                 <SelectItem key={group.groupName} value={group.groupName}>
                                     {group.groupName} ({group.count})
