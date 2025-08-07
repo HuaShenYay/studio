@@ -113,10 +113,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseC
                     {renderFeedback()}
                 </div>
             </CardContent>
-            <CardFooter className="bg-transparent dark:bg-background/20 px-6 py-3 flex justify-between items-center">
-                 <div className="text-xs text-muted-foreground">
-                    术语: <strong>{termData.term}</strong>
-                 </div>
+            <CardFooter className="bg-transparent dark:bg-background/20 px-6 py-3 flex justify-end items-center">
                  <div className='flex items-center'>
                      <TooltipProvider>
                         <Tooltip>
