@@ -74,8 +74,6 @@ const convertPdfToMarkdownFlow = ai.defineFlow(
   },
   async input => {
     try {
-        const pdf = (await import('pdf-parse')).default;
-        
         // 1. Fetch the PDF from the URL
         const response = await fetch(input.pdfUrl);
         if (!response.ok) {
@@ -83,6 +81,8 @@ const convertPdfToMarkdownFlow = ai.defineFlow(
         }
         const pdfBuffer = await response.arrayBuffer();
         
+        const pdf = (await import('pdf-parse')).default;
+
         // 2. Parse the PDF to get text and page count
         // Crucially, pdf-parse expects a Node.js Buffer, not an ArrayBuffer.
         const nodeBuffer = Buffer.from(pdfBuffer);
