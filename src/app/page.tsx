@@ -74,6 +74,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const { toast } = useToast();
 
     const fetchTerms = useCallback(async () => {
+        setIsLoading(true);
         try {
             const fetchedTerms = await getTerms();
             setTerms(fetchedTerms);
@@ -94,7 +95,8 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             setIsLoading(true);
             try {
                 await resetAllTerms();
-                await fetchTerms();
+                const fetchedTerms = await getTerms();
+                setTerms(fetchedTerms);
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
                 toast({
@@ -103,12 +105,15 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                     description: `无法开始新的练习会话: ${errorMessage}`,
                 });
                  // Still try to fetch terms even if reset fails
-                await fetchTerms();
+                const fetchedTerms = await getTerms();
+                setTerms(fetchedTerms);
+            } finally {
+                setIsLoading(false);
             }
         };
 
         initializeSession();
-    }, [fetchTerms, toast]);
+    }, [toast]);
 
     const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
