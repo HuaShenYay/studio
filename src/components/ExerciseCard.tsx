@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { Star, CheckCircle2, XCircle, ChevronRight, Trash2 } from 'lucide-react';
+import { Star, CheckCircle2, XCircle, ChevronRight, Trash2, Lightbulb } from 'lucide-react';
 import type { LiteraryTerm, PracticeStatus } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -75,8 +75,10 @@ export default function ExerciseCard({ termData, onUpdate, onDelete }: ExerciseC
         if (status === 'incorrect') {
              return (
                 <div className="flex items-center gap-2 text-destructive">
-                    <XCircle className="h-5 w-5"/>
-                    <p className="font-semibold">不太对。正确答案是：<strong>{termData.answer}</strong></p>
+                    <Lightbulb className="h-5 w-5"/>
+                    <p className="font-semibold">
+                        不太对哦。提示：答案以“{termData.answer.charAt(0)}”开头，共 {termData.answer.length} 个字。
+                    </p>
                 </div>
             )
         }
