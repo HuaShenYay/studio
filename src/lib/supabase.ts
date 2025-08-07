@@ -25,10 +25,10 @@ export type Database = {
           term: string
           explanation: string
           exercise: string
-          answers: string[]
+          answer: string
           isDifficult: boolean
           status: 'unanswered' | 'correct' | 'incorrect'
-          userAnswers: string[]
+          userAnswer: string
           group_name: string | null
         },
         Insert: {
@@ -37,10 +37,10 @@ export type Database = {
           term: string
           explanation: string
           exercise: string
-          answers: string[]
+          answer: string
           isDifficult?: boolean
           status?: 'unanswered' | 'correct' | 'incorrect'
-          userAnswers?: string[]
+          userAnswer?: string
           group_name?: string | null
         },
         Update: {
@@ -49,10 +49,10 @@ export type Database = {
           term?: string
           explanation?: string
           exercise?: string
-          answers?: string[]
+          answer?: string
           isDifficult?: boolean
           status?: 'unanswered' | 'correct' | 'incorrect'
-          userAnswers?: string[]
+          userAnswer?: string
           group_name?: string | null
         }
       }

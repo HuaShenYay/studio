@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank';
+import { generateFillInBlankExercise } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
@@ -102,15 +102,15 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
         try {
-            const exerciseResult = await generateFillInBlankExercises({ term, explanation });
+            const exerciseResult = await generateFillInBlankExercise({ term, explanation });
             const newTermData: LiteraryTermCreate = {
                 term,
                 explanation,
                 exercise: exerciseResult.exercise,
-                answers: exerciseResult.answers,
+                answer: exerciseResult.answer,
                 isDifficult: false,
                 status: 'unanswered',
-                userAnswers: Array(exerciseResult.answers.length).fill(''),
+                userAnswer: '',
                 groupName: groupName,
             };
             const newTerm = await addTerm(newTermData);

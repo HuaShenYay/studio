@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, CheckCircle2, XCircle, ChevronRight, Trash2, Lightbulb, RefreshCcw } from 'lucide-react';
 import type { LiteraryTerm, PracticeStatus, TermGroup } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -29,53 +29,36 @@ type ExerciseCardProps = {
 };
 
 export default function ExerciseCard({ termData, onUpdate, onDelete, groups = [] }: ExerciseCardProps) {
-    const { answers = [], exercise, status: initialStatus } = termData;
-    const numBlanks = useMemo(() => (exercise.match(/____/g) || []).length, [exercise]);
-
-    const [userAnswers, setUserAnswers] = useState<string[]>(
-        Array.isArray(termData.userAnswers) && termData.userAnswers.length === numBlanks 
-        ? termData.userAnswers 
-        : Array(numBlanks).fill('')
-    );
+    const { answer, exercise, status: initialStatus, userAnswer: initialUserAnswer } = termData;
+    const [userAnswer, setUserAnswer] = useState(initialUserAnswer || '');
     const [status, setStatus] = useState<PracticeStatus>(initialStatus);
-    const [incorrectIndices, setIncorrectIndices] = useState<number[]>([]);
+    const [isIncorrect, setIsIncorrect] = useState(false);
 
     useEffect(() => {
-        const newNumBlanks = (exercise.match(/____/g) || []).length;
-        setUserAnswers(
-            Array.isArray(termData.userAnswers) && termData.userAnswers.length === newNumBlanks
-            ? termData.userAnswers
-            : Array(newNumBlanks).fill('')
-        );
+        setUserAnswer(termData.userAnswer || '');
         setStatus(termData.status);
-        setIncorrectIndices([]);
-    }, [termData, exercise]);
+        setIsIncorrect(false);
+    }, [termData]);
 
-    const handleAnswerChange = (index: number, value: string) => {
-        const newAnswers = [...userAnswers];
-        newAnswers[index] = value;
-        setUserAnswers(newAnswers);
+    const handleAnswerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setUserAnswer(e.target.value);
+        if (status !== 'unanswered') {
+            setStatus('unanswered');
+            setIsIncorrect(false);
+        }
     };
 
     const handleCheckAnswer = () => {
-        const newIncorrectIndices: number[] = [];
-        let allCorrect = true;
-        answers.forEach((correctAnswer, index) => {
-            if (userAnswers[index].trim().toLowerCase() !== correctAnswer.trim().toLowerCase()) {
-                allCorrect = false;
-                newIncorrectIndices.push(index);
-            }
-        });
-
-        setIncorrectIndices(newIncorrectIndices);
-        const newStatus = allCorrect ? 'correct' : 'incorrect';
+        const isCorrect = userAnswer.trim().toLowerCase() === answer.trim().toLowerCase();
+        const newStatus = isCorrect ? 'correct' : 'incorrect';
         setStatus(newStatus);
-        onUpdate({ ...termData, status: newStatus, userAnswers });
+        setIsIncorrect(!isCorrect);
+        onUpdate({ ...termData, status: newStatus, userAnswer: userAnswer });
     };
     
     const handleTryAgain = () => {
         setStatus('unanswered');
-        setIncorrectIndices([]);
+        setIsIncorrect(false);
         onUpdate({ ...termData, status: 'unanswered' });
     }
 
@@ -103,35 +86,34 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
         unanswered: 'bg-card'
     }[status];
 
-    const renderInputs = () => {
-        let lastIndex = 0;
-        const parts = [];
-        
-        exercise.split('____').forEach((part, index) => {
-            parts.push(<span key={`part-${index}`}>{part}</span>);
-            if (index < numBlanks) {
-                const isIncorrect = incorrectIndices.includes(index);
-                parts.push(
-                    <span key={`input-${index}`} className="inline-block mx-1 align-bottom">
-                         <Input
-                            type="text"
-                            placeholder={`答案 ${index + 1}`}
-                            value={userAnswers[index]}
-                            onChange={(e) => handleAnswerChange(index, e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && status === 'unanswered' && handleCheckAnswer()}
-                            disabled={status !== 'unanswered'}
-                            className={cn(
-                                "text-base inline-block w-32 h-8",
-                                isIncorrect && "border-destructive focus-visible:ring-destructive"
-                            )}
-                        />
-                    </span>
-                );
-            }
-        });
-        return <div className="text-lg leading-relaxed text-foreground/90">{parts}</div>;
-    }
-
+    const renderExercise = () => {
+        const parts = exercise.split('____');
+        return (
+            <div className="text-lg leading-relaxed text-foreground/90">
+                {parts.map((part, index) => (
+                    <React.Fragment key={index}>
+                        {part}
+                        {index < parts.length - 1 && (
+                             <span className="inline-block mx-1 align-bottom">
+                                <Input
+                                    type="text"
+                                    placeholder="答案"
+                                    value={userAnswer}
+                                    onChange={handleAnswerChange}
+                                    onKeyDown={(e) => e.key === 'Enter' && status === 'unanswered' && handleCheckAnswer()}
+                                    disabled={status !== 'unanswered'}
+                                    className={cn(
+                                        "text-base inline-block w-48 h-8",
+                                        isIncorrect && "border-destructive focus-visible:ring-destructive"
+                                    )}
+                                />
+                             </span>
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
+        );
+    };
 
     const renderFeedback = () => {
         if (status === 'correct') {
@@ -146,9 +128,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
              return (
                 <div className="flex items-center gap-2 text-destructive">
                     <Lightbulb className="h-5 w-5"/>
-                    <p className="font-semibold">
-                        部分答案不正确，请检查高亮显示的输入框。
-                    </p>
+                     <p className="font-semibold">答案不正确。正确答案是：<strong>{answer}</strong></p>
                 </div>
             )
         }
@@ -159,7 +139,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
         <Card className={cn("transition-all duration-300", borderColorClass, backgroundColorClass)}>
             <CardContent className="pt-6">
                 <blockquote className="border-l-4 border-primary/20 pl-4">
-                    {renderInputs()}
+                    {renderExercise()}
                 </blockquote>
                 <div className="mt-6 flex flex-col sm:flex-row gap-2">
                      {status === 'unanswered' ? (
