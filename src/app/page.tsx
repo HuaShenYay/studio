@@ -6,11 +6,12 @@ import { generateFillInBlankExercise } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
+import WritingAdvisorView from '@/components/WritingAdvisorView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, renameGroup, deleteGroup as deleteGroupService } from '@/services/terms-service';
 
-type View = 'practice' | 'add';
+type View = 'practice' | 'add' | 'advisor';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
@@ -105,15 +106,26 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                     description: `无法开始新的练习会话: ${errorMessage}`,
                 });
                  // Still try to fetch terms even if reset fails
-                const fetchedTerms = await getTerms();
-                setTerms(fetchedTerms);
+                try {
+                    const fetchedTerms = await getTerms();
+                    setTerms(fetchedTerms);
+                } catch (fetchError) {
+                     const fetchErrorMessage = fetchError instanceof Error ? fetchError.message : '一个未知错误发生了。';
+                     toast({
+                        variant: "destructive",
+                        title: "加载术语失败",
+                        description: fetchErrorMessage,
+                    });
+                }
             } finally {
                 setIsLoading(false);
             }
         };
 
-        initializeSession();
-    }, [toast]);
+        if (currentView === 'practice') {
+            initializeSession();
+        }
+    }, [currentView, toast]);
 
     const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
@@ -175,6 +187,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             if (updatedTerm.groupName !== originalTerm.groupName) {
                 changes.groupName = updatedTerm.groupName;
             }
+            
             // Only call update if there are actual changes
             if (Object.keys(changes).length > 0) {
               await updateTerm(updatedTerm.id, changes);
@@ -274,6 +287,8 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 );
             case 'add':
                 return <AddTermView onAddTerm={handleAddTerm} isLoading={isProcessing} getGroups={getGroups} />;
+            case 'advisor':
+                return <WritingAdvisorView />;
         }
     }
 

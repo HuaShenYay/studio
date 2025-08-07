@@ -1,0 +1,165 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Feather, Loader2, Wand2 } from "lucide-react";
+import { useState } from "react";
+import { critiqueWriting } from "@/ai/flows/critique-writing";
+import type { CritiqueWritingOutput, LiteraryStyle } from "@/ai/flows/critique-writing";
+import { useToast } from "@/hooks/use-toast";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const literaryStyles = ["海明威风格", "意识流", "网络文学"] as const;
+
+const formSchema = z.object({
+    textToCritique: z.string().min(50, {
+        message: "为了得到有意义的建议，请输入至少 50 个字符。",
+    }).max(5000, {
+        message: "内容过长，请保持在 5000 字符以内。"
+    }),
+    style: z.enum(literaryStyles, {
+        errorMap: () => ({ message: "请选择一个文学风格。" }),
+    }),
+});
+
+export default function WritingAdvisorView() {
+    const [isLoading, setIsLoading] = useState(false);
+    const [result, setResult] = useState<CritiqueWritingOutput | null>(null);
+    const { toast } = useToast();
+
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            textToCritique: "",
+            style: "海明威风格",
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        setIsLoading(true);
+        setResult(null);
+        try {
+            const critiqueResult = await critiqueWriting({
+                textToCritique: values.textToCritique,
+                style: values.style as LiteraryStyle,
+            });
+            setResult(critiqueResult);
+        } catch (error) {
+            console.error("Failed to get writing critique:", error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: "destructive",
+                title: "获取建议时出错",
+                description: errorMessage,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    return (
+        <div>
+            <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 rounded-full bg-primary/10 text-primary">
+                    <Feather className="h-8 w-8" />
+                </div>
+                <div>
+                    <h2 className="text-3xl font-bold text-foreground">写作指导</h2>
+                    <p className="text-muted-foreground">让 AI 成为您的专属文学编辑，提升您的写作技巧。</p>
+                </div>
+            </div>
+
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="textToCritique"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-lg">您的作品</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="在此处粘贴您的文字..."
+                                        className="resize-y min-h-[200px] text-base"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="style"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-lg">选择分析风格</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="请选择一个风格" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {literaryStyles.map(style => (
+                                            <SelectItem key={style} value={style}>{style}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                   AI 将依据您选择的风格对您的作品进行评价。
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    <Button type="submit" disabled={isLoading} size="lg" className="w-full sm:w-auto">
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        获取 AI 建议
+                    </Button>
+                </form>
+            </Form>
+
+            {isLoading && (
+                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card mt-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-lg">AI 正在阅读您的作品并撰写反馈...</p>
+                    <p className="text-sm">这可能需要一点时间，请稍候。</p>
+                </div>
+            )}
+
+            {result && !isLoading && (
+                <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle className="text-2xl">AI 写作分析报告</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div>
+                            <h3 className="text-xl font-semibold mb-2">综合评价</h3>
+                            <p className="text-base whitespace-pre-wrap leading-relaxed">{result.evaluation}</p>
+                        </div>
+                         <div>
+                            <h3 className="text-xl font-semibold mb-2">修改建议</h3>
+                            <p className="text-base whitespace-pre-wrap leading-relaxed">{result.suggestions}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}

@@ -4,7 +4,7 @@
 import React from 'react';
 import Header from './Header';
 
-type View = 'practice' | 'add' | 'files';
+type View = 'practice' | 'add' | 'advisor';
 
 interface AppLayoutProps {
     children: React.ReactNode;
