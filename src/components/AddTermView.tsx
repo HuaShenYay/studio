@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { PlusCircle, Loader2, Sparkles, PlusSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { generateExplanation } from "@/ai/flows/generate-explanation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Combobox } from "@/components/ui/combobox";
+import type { TermGroup } from "@/types";
 
 const formSchema = z.object({
     term: z.string().min(2, {
@@ -31,23 +33,44 @@ const formSchema = z.object({
         message: "解释必须至少包含 10 个字符。"
     }).max(500, {
         message: "解释不能超过 500 个字符。"
-    })
+    }),
+    groupName: z.string().nullable(),
 });
 
 type AddTermViewProps = {
-    onAddTerm: (term: string, explanation: string) => Promise<void>;
+    onAddTerm: (term: string, explanation: string, groupName: string | null) => Promise<void>;
     isLoading: boolean;
+    getGroups: () => Promise<TermGroup[]>;
 }
 
-export default function AddTermView({ onAddTerm, isLoading }: AddTermViewProps) {
+export default function AddTermView({ onAddTerm, isLoading, getGroups }: AddTermViewProps) {
     const [isGenerating, setIsGenerating] = useState(false);
+    const [groups, setGroups] = useState<TermGroup[]>([]);
     const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                const fetchedGroups = await getGroups();
+                setGroups(fetchedGroups);
+            } catch (error) {
+                console.error("Failed to fetch groups:", error);
+                toast({
+                    variant: "destructive",
+                    title: "加载小组失败",
+                    description: "无法从服务器获取小组列表。",
+                });
+            }
+        };
+        fetchGroups();
+    }, [getGroups, toast]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             term: "",
             explanation: "",
+            groupName: "Manual",
         },
     });
 
@@ -78,7 +101,7 @@ export default function AddTermView({ onAddTerm, isLoading }: AddTermViewProps) 
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        await onAddTerm(values.term, values.explanation);
+        await onAddTerm(values.term, values.explanation, values.groupName);
         form.reset();
     }
 
@@ -107,6 +130,25 @@ export default function AddTermView({ onAddTerm, isLoading }: AddTermViewProps) 
                                 <FormControl>
                                     <Input placeholder="例如：十四行诗" {...field} className="text-base py-6" />
                                 </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="groupName"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel className="text-lg">分组</FormLabel>
+                                <Combobox
+                                    options={groups.map(g => ({ label: `${g.groupName} (${g.count})`, value: g.groupName }))}
+                                    value={field.value ?? ""}
+                                    onChange={field.onChange}
+                                    entityName="分组"
+                                />
+                                <FormDescription>
+                                   选择一个现有分组或输入一个新名称来创建分组。
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

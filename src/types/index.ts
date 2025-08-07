@@ -5,10 +5,10 @@ export interface LiteraryTerm {
   term: string;
   explanation: string;
   exercise: string;
-  answer: string;
+  answers: string[];
   isDifficult: boolean;
   status: PracticeStatus;
-  userAnswer: string;
+  userAnswers: string[];
   createdAt: Date;
   groupName: string | null;
 }

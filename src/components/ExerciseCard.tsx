@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { Star, CheckCircle2, XCircle, ChevronRight, Trash2, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Star, CheckCircle2, XCircle, ChevronRight, Trash2, Lightbulb, RefreshCcw } from 'lucide-react';
 import type { LiteraryTerm, PracticeStatus, TermGroup } from '@/types';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,23 +29,53 @@ type ExerciseCardProps = {
 };
 
 export default function ExerciseCard({ termData, onUpdate, onDelete, groups = [] }: ExerciseCardProps) {
-    const [userAnswer, setUserAnswer] = useState(termData.userAnswer);
-    const [status, setStatus] = useState<PracticeStatus>(termData.status);
+    const { answers = [], exercise, status: initialStatus } = termData;
+    const numBlanks = useMemo(() => (exercise.match(/____/g) || []).length, [exercise]);
+
+    const [userAnswers, setUserAnswers] = useState<string[]>(
+        Array.isArray(termData.userAnswers) && termData.userAnswers.length === numBlanks 
+        ? termData.userAnswers 
+        : Array(numBlanks).fill('')
+    );
+    const [status, setStatus] = useState<PracticeStatus>(initialStatus);
+    const [incorrectIndices, setIncorrectIndices] = useState<number[]>([]);
 
     useEffect(() => {
-        setUserAnswer(termData.userAnswer);
+        const newNumBlanks = (exercise.match(/____/g) || []).length;
+        setUserAnswers(
+            Array.isArray(termData.userAnswers) && termData.userAnswers.length === newNumBlanks
+            ? termData.userAnswers
+            : Array(newNumBlanks).fill('')
+        );
         setStatus(termData.status);
-    }, [termData]);
+        setIncorrectIndices([]);
+    }, [termData, exercise]);
+
+    const handleAnswerChange = (index: number, value: string) => {
+        const newAnswers = [...userAnswers];
+        newAnswers[index] = value;
+        setUserAnswers(newAnswers);
+    };
 
     const handleCheckAnswer = () => {
-        const isCorrect = userAnswer.trim().toLowerCase() === termData.answer.trim().toLowerCase();
-        const newStatus = isCorrect ? 'correct' : 'incorrect';
+        const newIncorrectIndices: number[] = [];
+        let allCorrect = true;
+        answers.forEach((correctAnswer, index) => {
+            if (userAnswers[index].trim().toLowerCase() !== correctAnswer.trim().toLowerCase()) {
+                allCorrect = false;
+                newIncorrectIndices.push(index);
+            }
+        });
+
+        setIncorrectIndices(newIncorrectIndices);
+        const newStatus = allCorrect ? 'correct' : 'incorrect';
         setStatus(newStatus);
-        onUpdate({ ...termData, status: newStatus, userAnswer });
+        onUpdate({ ...termData, status: newStatus, userAnswers });
     };
     
     const handleTryAgain = () => {
         setStatus('unanswered');
+        setIncorrectIndices([]);
         onUpdate({ ...termData, status: 'unanswered' });
     }
 
@@ -73,6 +103,35 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
         unanswered: 'bg-card'
     }[status];
 
+    const renderInputs = () => {
+        let lastIndex = 0;
+        const parts = [];
+        
+        exercise.split('____').forEach((part, index) => {
+            parts.push(<span key={`part-${index}`}>{part}</span>);
+            if (index < numBlanks) {
+                const isIncorrect = incorrectIndices.includes(index);
+                parts.push(
+                    <div key={`input-${index}`} className="inline-block mx-1 align-bottom">
+                         <Input
+                            type="text"
+                            placeholder={`答案 ${index + 1}`}
+                            value={userAnswers[index]}
+                            onChange={(e) => handleAnswerChange(index, e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && status === 'unanswered' && handleCheckAnswer()}
+                            disabled={status !== 'unanswered'}
+                            className={cn(
+                                "text-base inline-block w-32 h-8",
+                                isIncorrect && "border-destructive focus-visible:ring-destructive"
+                            )}
+                        />
+                    </div>
+                );
+            }
+        });
+        return <p className="text-lg leading-relaxed text-foreground/90">{parts}</p>;
+    }
+
 
     const renderFeedback = () => {
         if (status === 'correct') {
@@ -88,7 +147,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                 <div className="flex items-center gap-2 text-destructive">
                     <Lightbulb className="h-5 w-5"/>
                     <p className="font-semibold">
-                        不太对哦。提示：答案以“{termData.answer.charAt(0)}”开头，共 {termData.answer.length} 个字。
+                        部分答案不正确，请检查高亮显示的输入框。
                     </p>
                 </div>
             )
@@ -99,25 +158,18 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
     return (
         <Card className={cn("transition-all duration-300", borderColorClass, backgroundColorClass)}>
             <CardContent className="pt-6">
-                <blockquote className="text-lg leading-relaxed text-foreground/90 border-l-4 border-primary/20 pl-4">
-                    {termData.exercise}
+                <blockquote className="border-l-4 border-primary/20 pl-4">
+                    {renderInputs()}
                 </blockquote>
                 <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                    <Input
-                        type="text"
-                        placeholder="在此输入您的答案..."
-                        value={userAnswer}
-                        onChange={(e) => setUserAnswer(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && status === 'unanswered' && handleCheckAnswer()}
-                        disabled={status !== 'unanswered'}
-                        className="text-base"
-                    />
                      {status === 'unanswered' ? (
-                        <Button onClick={handleCheckAnswer} className="shrink-0">
+                        <Button onClick={handleCheckAnswer} className="shrink-0 w-full">
                            检查答案 <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     ) : (
-                         <Button onClick={handleTryAgain} variant="secondary" className="shrink-0">再试一次</Button>
+                         <Button onClick={handleTryAgain} variant="secondary" className="shrink-0 w-full">
+                            <RefreshCcw className="mr-2 h-4 w-4"/> 再试一次
+                         </Button>
                     )}
                 </div>
                  <div className="mt-4 min-h-[28px]">

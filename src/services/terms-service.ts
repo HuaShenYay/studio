@@ -14,6 +14,8 @@ const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
     ...row,
     createdAt: new Date(row.created_at),
     groupName: row.group_name,
+    answers: Array.isArray(row.answers) ? row.answers : [],
+    userAnswers: Array.isArray(row.userAnswers) ? row.userAnswers : [],
 });
 
 const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
@@ -21,10 +23,10 @@ const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
         term: termData.term,
         explanation: termData.explanation,
         exercise: termData.exercise,
-        answer: termData.answer,
+        answers: termData.answers,
         isDifficult: termData.isDifficult,
         status: termData.status,
-        userAnswer: termData.userAnswer,
+        userAnswers: termData.userAnswers,
         group_name: termData.groupName,
     };
 };
@@ -122,13 +124,24 @@ export async function getGroups(): Promise<TermGroup[]> {
 }
 
 export async function resetAllTerms(): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from(TERMS_TABLE)
-        .update({ status: 'unanswered', userAnswer: '' })
-        .neq('status', 'unanswered'); // Only update if not already unanswered.
-
+        .select('id, answers');
+    
     if (error) {
-        console.error('Error resetting terms:', error);
+        console.error('Error fetching terms for reset:', error);
         throw new Error(`重置所有术语失败: ${error.message}`);
     }
+
+    if (!data) return;
+
+    const updates = data.map(term => {
+        const numAnswers = Array.isArray(term.answers) ? term.answers.length : 0;
+        return supabase
+            .from(TERMS_TABLE)
+            .update({ status: 'unanswered', userAnswers: Array(numAnswers).fill('') })
+            .eq('id', term.id);
+    });
+
+    await Promise.all(updates);
 }

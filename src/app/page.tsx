@@ -99,7 +99,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         fetchTerms();
     }, [fetchTerms]);
 
-    const handleAddTerm = async (term: string, explanation: string) => {
+    const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
         try {
             const exerciseResult = await generateFillInBlankExercises({ term, explanation });
@@ -107,11 +107,11 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 term,
                 explanation,
                 exercise: exerciseResult.exercise,
-                answer: term,
+                answers: exerciseResult.answers,
                 isDifficult: false,
                 status: 'unanswered',
-                userAnswer: '',
-                groupName: 'Manual',
+                userAnswers: Array(exerciseResult.answers.length).fill(''),
+                groupName: groupName,
             };
             const newTerm = await addTerm(newTermData);
             setTerms((prevTerms) => [newTerm, ...prevTerms]);
@@ -186,7 +186,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             case 'practice':
                 return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} getGroups={getGroups} />;
             case 'add':
-                return <AddTermView onAddTerm={handleAddTerm} isLoading={isProcessing} />;
+                return <AddTermView onAddTerm={handleAddTerm} isLoading={isProcessing} getGroups={getGroups} />;
         }
     }
 
