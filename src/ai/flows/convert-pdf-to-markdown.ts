@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { parsePdfFromBuffer } from '@/services/pdf-parser-service';
 
 
 // Define Zod schemas for input and output, but do not export them.
@@ -80,15 +81,10 @@ const convertPdfToMarkdownFlow = ai.defineFlow(
             throw new Error(`Failed to fetch PDF: ${response.statusText}`);
         }
         const pdfBuffer = await response.arrayBuffer();
+
+        // 2. Parse the PDF using the isolated service to get text and page count
+        const data = await parsePdfFromBuffer(Buffer.from(pdfBuffer));
         
-        const pdf = (await import('pdf-parse')).default;
-
-        // 2. Parse the PDF to get text and page count
-        // Crucially, pdf-parse expects a Node.js Buffer, not an ArrayBuffer.
-        const nodeBuffer = Buffer.from(pdfBuffer);
-        const data = await pdf(nodeBuffer);
-        const numPages = data.numpages;
-
         // 3. Process the PDF in chunks of 5 pages
         const chunkSize = 5;
         let allExplanations: string[] = [];
