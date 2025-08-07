@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  // This is the configuration for Turbopack
+  turbo: {
+    serverExternalPackages: ['canvas', 'sharp'],
+  },
+  // This is the configuration for Webpack
   webpack: (config, {isServer}) => {
     if (isServer) {
       config.externals.push('canvas');
