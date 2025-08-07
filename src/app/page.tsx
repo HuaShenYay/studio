@@ -10,8 +10,8 @@ import PdfListView from '@/components/PdfListView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf, getGroups, resetAllTerms } from '@/services/terms-service';
-import { convertPdfToMarkdown } from '@/ai/flows/convert-pdf-to-markdown';
-import { extractTermsFromMarkdown } from '@/ai/flows/extract-terms-from-markdown';
+import { extractTextFromPdf } from '@/ai/flows/extract-text-from-pdf';
+import { extractTermsFromText } from '@/ai/flows/extract-terms-from-text';
 
 type View = 'practice' | 'add' | 'files';
 
@@ -138,21 +138,21 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     
     const handleProcessPdf = async (publicUrl: string, fileName: string) => {
         setIsProcessing(true);
-        toast({ title: "AI正在处理中...", description: `步骤 1/3: 正在从 ${fileName} 转换到 Markdown...` });
+        toast({ title: "AI正在处理中...", description: `步骤 1/3: 正在从 ${fileName} 提取文本...` });
 
         try {
-            // Step 1: Convert PDF to Markdown
-            const { markdown } = await convertPdfToMarkdown({ pdfUrl: publicUrl });
-            if (!markdown) {
-                toast({ variant: "destructive", title: "转换失败", description: "AI 未能将 PDF 转换为 Markdown。" });
+            // Step 1: Convert PDF to Text
+            const { text } = await extractTextFromPdf({ pdfUrl: publicUrl });
+            if (!text) {
+                toast({ variant: "destructive", title: "提取失败", description: "AI 未能从 PDF 提取任何文本。" });
                 setIsProcessing(false);
                 return;
             }
             
-            toast({ title: "转换成功！", description: `步骤 2/3: 正在从 Markdown 中提取术语...` });
+            toast({ title: "提取成功！", description: `步骤 2/3: 正在从文本中提取术语...` });
 
-            // Step 2: Extract terms from Markdown
-            const { extractedTerms } = await extractTermsFromMarkdown({ markdownContent: markdown });
+            // Step 2: Extract terms from Text
+            const { extractedTerms } = await extractTermsFromText({ textContent: text });
 
             if (!extractedTerms || extractedTerms.length === 0) {
                 toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });
