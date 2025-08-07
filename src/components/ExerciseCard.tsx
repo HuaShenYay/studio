@@ -112,7 +112,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
             if (index < numBlanks) {
                 const isIncorrect = incorrectIndices.includes(index);
                 parts.push(
-                    <div key={`input-${index}`} className="inline-block mx-1 align-bottom">
+                    <span key={`input-${index}`} className="inline-block mx-1 align-bottom">
                          <Input
                             type="text"
                             placeholder={`答案 ${index + 1}`}
@@ -125,11 +125,11 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                                 isIncorrect && "border-destructive focus-visible:ring-destructive"
                             )}
                         />
-                    </div>
+                    </span>
                 );
             }
         });
-        return <p className="text-lg leading-relaxed text-foreground/90">{parts}</p>;
+        return <div className="text-lg leading-relaxed text-foreground/90">{parts}</div>;
     }
 
 
