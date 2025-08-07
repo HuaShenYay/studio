@@ -16,7 +16,6 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isReady, setIsReady] = useState(false);
     const { toast } = useToast();
 
     const handleLogout = useCallback(() => {
@@ -39,20 +38,6 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
             if (sessionAuth) {
                 setIsAuthenticated(true);
-                try {
-                    // Reset all terms before fetching them
-                    await resetAllTerms();
-                    setIsReady(true);
-                } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
-                    toast({
-                        variant: "destructive",
-                        title: "重置练习失败",
-                        description: `无法开始新的练习会话: ${errorMessage}`,
-                    });
-                    // Still show the app, but with potentially old data
-                    setIsReady(true);
-                }
             } else {
                 router.push('/login');
             }
@@ -61,11 +46,11 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
         performAuth();
     }, [searchParams, router, toast]);
 
-    if (!isAuthenticated || !isReady) {
+    if (!isAuthenticated) {
         return (
             <div className="flex h-screen w-full flex-col items-center justify-center gap-4 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-lg">正在准备您的学习环境...</p>
+                <p className="text-lg">正在验证身份...</p>
             </div>
         );
     }
@@ -89,15 +74,41 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const { toast } = useToast();
 
     const fetchTerms = useCallback(async () => {
-        setIsLoading(true);
-        const fetchedTerms = await getTerms();
-        setTerms(fetchedTerms);
-        setIsLoading(false);
-    }, []);
-
+        try {
+            const fetchedTerms = await getTerms();
+            setTerms(fetchedTerms);
+        } catch (error) {
+             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+            toast({
+                variant: "destructive",
+                title: "加载术语失败",
+                description: errorMessage,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [toast]);
+    
     useEffect(() => {
-        fetchTerms();
-    }, [fetchTerms]);
+        const initializeSession = async () => {
+            setIsLoading(true);
+            try {
+                await resetAllTerms();
+                await fetchTerms();
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
+                toast({
+                    variant: "destructive",
+                    title: "重置练习失败",
+                    description: `无法开始新的练习会话: ${errorMessage}`,
+                });
+                 // Still try to fetch terms even if reset fails
+                await fetchTerms();
+            }
+        };
+
+        initializeSession();
+    }, [fetchTerms, toast]);
 
     const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
@@ -239,7 +250,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             return (
                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card h-full">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-lg">正在从云端加载您的学习资料...</p>
+                    <p className="text-lg">正在准备您的学习环境...</p>
                 </div>
             );
         }
