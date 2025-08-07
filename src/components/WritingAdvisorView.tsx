@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import InteractiveCritique from "./InteractiveCritique";
 
 const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
 
@@ -39,6 +40,7 @@ const formSchema = z.object({
 export default function WritingAdvisorView() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<CritiqueWritingOutput | null>(null);
+    const [originalText, setOriginalText] = useState("");
     const { toast } = useToast();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -52,6 +54,7 @@ export default function WritingAdvisorView() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         setResult(null);
+        setOriginalText(values.textToCritique);
         try {
             const critiqueResult = await critiqueWriting({
                 textToCritique: values.textToCritique,
@@ -150,12 +153,15 @@ export default function WritingAdvisorView() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div>
-                            <h3 className="text-xl font-semibold mb-2">综合评价</h3>
+                            <h3 className="text-xl font-semibold mb-4 border-b pb-2">综合评价</h3>
                             <p className="text-base whitespace-pre-wrap leading-relaxed">{result.evaluation}</p>
                         </div>
                          <div>
-                            <h3 className="text-xl font-semibold mb-2">修改建议</h3>
-                            <p className="text-base whitespace-pre-wrap leading-relaxed">{result.suggestions}</p>
+                            <h3 className="text-xl font-semibold mb-4 border-b pb-2">修改建议 (将鼠标悬浮于高亮文本上查看)</h3>
+                             <InteractiveCritique
+                                originalText={originalText}
+                                suggestions={result.suggestions}
+                            />
                         </div>
                     </CardContent>
                 </Card>

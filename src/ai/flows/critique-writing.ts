@@ -21,9 +21,15 @@ const CritiqueWritingInputSchema = z.object({
 });
 export type CritiqueWritingInput = z.infer<typeof CritiqueWritingInputSchema>;
 
+const SuggestionSchema = z.object({
+    originalSegment: z.string().describe("需要修改的原始文本片段。"),
+    suggestedChange: z.string().describe("针对该片段的具体修改建议。"),
+    comment: z.string().describe("做出此修改的简要理由。"),
+});
+
 const CritiqueWritingOutputSchema = z.object({
-  evaluation: z.string().describe('对写作内容的全方位评价，包括是否符合所选风格、基本功等方面。'),
-  suggestions: z.string().describe('具体的修改建议，最好以列表形式呈现。'),
+  evaluation: z.string().describe('对写作内容的全方位评价，涵盖风格契合度、语言、结构、情感表达等方面。'),
+  suggestions: z.array(SuggestionSchema).describe('一个包含具体修改建议的数组。每个建议都应针对原文中的一个特定片段。'),
 });
 export type CritiqueWritingOutput = z.infer<typeof CritiqueWritingOutputSchema>;
 
@@ -38,13 +44,17 @@ const prompt = ai.definePrompt({
   prompt: `你是一位专业的文学编辑和写作导师。请根据用户选择的文学风格，对以下写作内容进行深入、专业、且富有建设性的评价和建议。
 
 要求：
-1.  **风格契合度分析**：首先，分析文本在多大程度上符合所选的【{{style}}】风格。如果符合，请指出具体体现在哪些方面；如果不符合，请说明原因。
-2.  **写作基本功评价**：从以下几个方面评价文本：
-    *   **语言**：用词是否精准、生动？句子结构是否清晰、有节奏感？
-    *   **结构**：文章的开头、发展、高潮、结尾是否安排得当？逻辑是否连贯？
-    *   **情感与表达**：文本是否能有效传达预期的情感或思想？感染力如何？
-3.  **提出修改建议**：基于以上分析，提供具体、可操作的修改建议。建议应直接针对原文内容，可以提出删改、重写某些句子或段落的方案。
-4.  **格式要求**：将最终结果分为“综合评价”和“修改建议”两部分。
+1.  **综合评价 (evaluation)**:
+    *   风格契合度分析：分析文本在多大程度上符合所选的【{{style}}】风格。
+    *   写作基本功评价：从语言、结构、情感与表达等方面进行综合评价。
+    *   这部分应是一个完整的、连贯的段落。
+
+2.  **具体修改建议 (suggestions)**:
+    *   这是一个**数组**，每个元素都是一个包含三个字段的对象：\`originalSegment\`、\`suggestedChange\` 和 \`comment\`。
+    *   \`originalSegment\`: **必须**是从用户原文中**精确、无修改地**提取的文本片段。
+    *   \`suggestedChange\`: 对 \`originalSegment\` 提出的修改方案。
+    *   \`comment\`: 解释为什么要做这个修改。
+    *   请找出多个值得修改的地方，并为每个地方生成一个建议对象。
 
 ---
 **文学风格**: {{style}}
