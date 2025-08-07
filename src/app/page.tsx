@@ -72,7 +72,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentView, setCurrentView] = useState<View>('practice');
     const { toast } = useToast();
-
+    
     const fetchTerms = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -94,7 +94,6 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         const initializeSession = async () => {
             setIsLoading(true);
             try {
-                // This function now correctly resets all terms before fetching
                 await resetAllTerms(); 
                 const fetchedTerms = await getTerms();
                 setTerms(fetchedTerms);
@@ -124,10 +123,10 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 term,
                 explanation,
                 exercise: exerciseResult.exercise,
-                answer: exerciseResult.answer,
+                answer: exerciseResult.answers,
                 isDifficult: false,
                 status: 'unanswered',
-                userAnswer: '',
+                userAnswer: {},
                 groupName: groupName,
             };
             const newTerm = await addTerm(newTermData);
@@ -155,7 +154,6 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         const originalTerms = [...terms];
         const originalTerm = originalTerms.find(t => t.id === updatedTerm.id);
         
-        // Optimistically update UI
         setTerms((prevTerms) =>
             prevTerms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
         );
@@ -163,14 +161,12 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         if (!originalTerm) return;
 
         try {
-            // Find what actually changed
             const changes: Partial<LiteraryTerm> = {};
-            if (updatedTerm.status !== originalTerm.status) changes.status = updatedTerm.status;
-            if (updatedTerm.userAnswer !== originalTerm.userAnswer) changes.userAnswer = updatedTerm.userAnswer;
+            if (JSON.stringify(updatedTerm.status) !== JSON.stringify(originalTerm.status)) changes.status = updatedTerm.status;
+            if (JSON.stringify(updatedTerm.userAnswer) !== JSON.stringify(originalTerm.userAnswer)) changes.userAnswer = updatedTerm.userAnswer;
             if (updatedTerm.isDifficult !== originalTerm.isDifficult) changes.isDifficult = updatedTerm.isDifficult;
             if (updatedTerm.groupName !== originalTerm.groupName) changes.groupName = updatedTerm.groupName;
             
-            // Only call update if there are actual changes
             if (Object.keys(changes).length > 0) {
               await updateTerm(updatedTerm.id, changes);
             }
@@ -182,7 +178,6 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                 title: "出错了",
                 description: `更新术语失败: ${errorMessage}`,
             });
-            // Revert UI on error
             setTerms(originalTerms);
         }
     };
@@ -211,7 +206,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const handleRenameGroup = async (oldName: string, newName: string) => {
         try {
             await renameGroup(oldName, newName);
-            await fetchTerms(); // Refresh all terms to reflect the change
+            await fetchTerms();
             toast({
                 title: '分组已重命名',
                 description: `分组 “${oldName}” 已成功更名为 “${newName}”。`,
@@ -229,7 +224,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const handleDeleteGroup = async (groupName: string) => {
         try {
             await deleteGroupService(groupName);
-            await fetchTerms(); // Refresh terms
+            await fetchTerms();
             toast({
                 title: '分组已删除',
                 description: `分组 “${groupName}” 已被删除，其下的术语已被设为未分组。`,

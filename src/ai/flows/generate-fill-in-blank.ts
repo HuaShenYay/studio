@@ -17,8 +17,8 @@ const GenerateFillInBlankExerciseInputSchema = z.object({
 export type GenerateFillInBlankExerciseInput = z.infer<typeof GenerateFillInBlankExerciseInputSchema>;
 
 const GenerateFillInBlankExerciseOutputSchema = z.object({
-  exercise: z.string().describe('The generated fill-in-the-blank sentence with a single blank (____).'),
-  answer: z.string().describe('The single correct answer for the blank.'),
+  exercise: z.string().describe('A sentence with one or more blanks, each represented by "____" (four underscores).'),
+  answers: z.record(z.string()).describe('A JSON object where keys are the 0-based index of the blank (as a string) and values are the correct answers.'),
 });
 export type GenerateFillInBlankExerciseOutput = z.infer<typeof GenerateFillInBlankExerciseOutputSchema>;
 
@@ -30,18 +30,18 @@ const prompt = ai.definePrompt({
   name: 'generateFillInBlankExercisePrompt',
   input: {schema: GenerateFillInBlankExerciseInputSchema},
   output: {schema: GenerateFillInBlankExerciseOutputSchema},
-  prompt: `You are an expert in creating educational materials. Based on the literary term and its explanation below, create a single fill-in-the-blank question.
+  prompt: `You are an expert in creating educational materials. Based on the literary term and its explanation below, create a multi-blank fill-in-the-blank question.
 
 Requirements:
-1.  Use the provided explanation as the body of the question.
-2.  Replace the literary term itself within the explanation with a single blank space represented by "____" (four underscores).
-3.  The 'exercise' field in the output should contain the modified explanation with the blank.
-4.  The 'answer' field in the output should contain the original literary term.
+1.  The question should be derived from the explanation.
+2.  Replace the literary term itself, and at least one other key concept, with a blank space represented by "____" (four underscores). Create at least two blanks.
+3.  The 'exercise' field in the output should contain the modified explanation with the blanks.
+4.  The 'answers' field in the output must be a JSON object. The keys should be the 0-based index of each blank (as a string, e.g., "0", "1"). The values should be the corresponding correct words for the blanks. The term itself should be the answer for one of the blanks.
 
 Term: {{term}}
 Explanation: {{explanation}}
 
-Generate the exercise and the answer.`,
+Generate the exercise and the answer object.`,
 });
 
 const generateFillInBlankExerciseFlow = ai.defineFlow(
@@ -51,21 +51,7 @@ const generateFillInBlankExerciseFlow = ai.defineFlow(
     outputSchema: GenerateFillInBlankExerciseOutputSchema,
   },
   async input => {
-    // A simple implementation for now: replace the term in the explanation with a blank.
-    // The AI prompt is set up for a more robust implementation in the future.
-    const exercise = input.explanation.replace(new RegExp(input.term, 'ig'), '____');
-    
-    // If the term wasn't found and replaced, create a simple blank-filling exercise.
-    if (exercise === input.explanation) {
-      return {
-        exercise: `____: ${input.explanation}`,
-        answer: input.term,
-      };
-    }
-
-    return {
-      exercise: exercise,
-      answer: input.term,
-    };
+    const {output} = await prompt(input);
+    return output!;
   }
 );

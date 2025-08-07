@@ -16,10 +16,10 @@ const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
     term: row.term,
     explanation: row.explanation,
     exercise: row.exercise,
-    answer: row.answer,
+    answer: row.answer ?? {}, // Default to empty object if null
     isDifficult: row.isDifficult,
     status: row.status,
-    userAnswer: row.userAnswer,
+    userAnswer: row.userAnswer ?? {}, // Default to empty object if null
     groupName: row.group_name,
 });
 
@@ -76,7 +76,6 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
 export async function updateTerm(id: number, changes: Partial<LiteraryTerm>): Promise<void> {
     const supabaseData: LiteraryTermUpdate = {};
 
-    // Map frontend-friendly names to database column names
     if (changes.status !== undefined) supabaseData.status = changes.status;
     if (changes.userAnswer !== undefined) supabaseData.userAnswer = changes.userAnswer;
     if (changes.isDifficult !== undefined) supabaseData.isDifficult = changes.isDifficult;
@@ -84,7 +83,6 @@ export async function updateTerm(id: number, changes: Partial<LiteraryTerm>): Pr
         supabaseData.group_name = changes.groupName;
     }
 
-    // if there are no actual changes, do not call the database
     if (Object.keys(supabaseData).length === 0) {
         return;
     }
@@ -150,7 +148,6 @@ export async function renameGroup(oldName: string, newName: string): Promise<voi
 }
 
 export async function deleteGroup(groupName: string): Promise<void> {
-    // This will "delete" the group by un-assigning all terms from it.
     const { error } = await supabase
         .from(TERMS_TABLE)
         .update({ group_name: null })
@@ -163,13 +160,10 @@ export async function deleteGroup(groupName: string): Promise<void> {
 }
 
 export async function resetAllTerms(): Promise<void> {
-    // By default, Supabase PostgREST prevents whole-table updates.
-    // We can bypass this by providing a filter that matches all rows,
-    // such as a non-equality check on a primary key.
     const { error } = await supabase
         .from(TERMS_TABLE)
-        .update({ status: 'unanswered', userAnswer: '' })
-        .neq('id', -1); // This condition effectively targets all rows
+        .update({ status: 'unanswered', userAnswer: {} })
+        .neq('id', -1); 
     
     if (error) {
         console.error('Error resetting terms:', error);

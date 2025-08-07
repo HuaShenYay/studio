@@ -40,35 +40,42 @@ type ExerciseCardProps = {
 
 export default function ExerciseCard({ termData, onUpdate, onDelete, groups = [] }: ExerciseCardProps) {
     const { answer, exercise, status: initialStatus, userAnswer: initialUserAnswer } = termData;
-    const [userAnswer, setUserAnswer] = useState(initialUserAnswer || '');
-    const [status, setStatus] = useState<PracticeStatus>(initialStatus);
-    const [isIncorrect, setIsIncorrect] = useState(false);
+    const [userAnswers, setUserAnswers] = useState<Record<string, string>>(initialUserAnswer || {});
+    const [status, setStatus] = useState<PracticeStatus | Record<string, PracticeStatus>>(initialStatus);
+
+    const blankCount = (exercise.match(/____/g) || []).length;
+    const isMultiBlank = blankCount > 1;
 
     useEffect(() => {
-        setUserAnswer(termData.userAnswer || '');
+        setUserAnswers(termData.userAnswer || {});
         setStatus(termData.status);
-        setIsIncorrect(false);
     }, [termData]);
 
-    const handleAnswerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setUserAnswer(e.target.value);
+    const handleAnswerChange = (index: number, value: string) => {
+        setUserAnswers(prev => ({ ...prev, [index]: value }));
         if (status !== 'unanswered') {
             setStatus('unanswered');
-            setIsIncorrect(false);
         }
     };
 
     const handleCheckAnswer = () => {
-        const isCorrect = userAnswer.trim().toLowerCase() === answer.trim().toLowerCase();
-        const newStatus = isCorrect ? 'correct' : 'incorrect';
-        setStatus(newStatus);
-        setIsIncorrect(!isCorrect);
-        onUpdate({ ...termData, status: newStatus, userAnswer: userAnswer });
+        let allCorrect = true;
+        const newStatus: Record<string, PracticeStatus> = {};
+        
+        for (let i = 0; i < blankCount; i++) {
+            const isCorrect = (userAnswers[i] || '').trim().toLowerCase() === (answer[i] || '').trim().toLowerCase();
+            newStatus[i] = isCorrect ? 'correct' : 'incorrect';
+            if (!isCorrect) {
+                allCorrect = false;
+            }
+        }
+        
+        setStatus(allCorrect ? 'correct' : newStatus);
+        onUpdate({ ...termData, status: allCorrect ? 'correct' : 'incorrect', userAnswer: userAnswers });
     };
     
     const handleTryAgain = () => {
         setStatus('unanswered');
-        setIsIncorrect(false);
         onUpdate({ ...termData, status: 'unanswered' });
     }
 
@@ -83,38 +90,43 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
     const handleGroupChange = (newGroupName: string) => {
         onUpdate({ ...termData, groupName: newGroupName });
     };
+    
+    const getOverallStatus = (): PracticeStatus => {
+        if (typeof status === 'object') return 'incorrect';
+        return status;
+    }
 
     const borderColorClass = {
         correct: 'border-green-500/50 dark:border-green-400/50',
         incorrect: 'border-destructive/50',
         unanswered: 'border-border'
-    }[status];
+    }[getOverallStatus()];
 
     const backgroundColorClass = {
         correct: 'bg-green-500/5',
         incorrect: 'bg-destructive/5',
         unanswered: 'bg-card'
-    }[status];
+    }[getOverallStatus()];
 
     const renderExercise = () => {
         const parts = exercise.split('____');
         return (
-            <div className="text-lg leading-relaxed text-foreground/90">
+            <div className="text-lg leading-relaxed text-foreground/90 flex flex-wrap items-center">
                 {parts.map((part, index) => (
                     <React.Fragment key={index}>
-                        {part}
+                        <span>{part}</span>
                         {index < parts.length - 1 && (
-                             <span className="inline-block mx-1 align-bottom">
+                             <span className="inline-block mx-1 my-1 align-bottom">
                                 <Input
                                     type="text"
-                                    placeholder="答案"
-                                    value={userAnswer}
-                                    onChange={handleAnswerChange}
-                                    onKeyDown={(e) => e.key === 'Enter' && status === 'unanswered' && handleCheckAnswer()}
-                                    disabled={status !== 'unanswered'}
+                                    placeholder={`答案 ${index + 1}`}
+                                    value={userAnswers[index] || ''}
+                                    onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && getOverallStatus() === 'unanswered' && handleCheckAnswer()}
+                                    disabled={getOverallStatus() !== 'unanswered'}
                                     className={cn(
-                                        "text-base inline-block w-48 h-8",
-                                        isIncorrect && "border-destructive focus-visible:ring-destructive"
+                                        "text-base inline-block w-36 h-8",
+                                        typeof status === 'object' && status[index] === 'incorrect' && "border-destructive focus-visible:ring-destructive"
                                     )}
                                 />
                              </span>
@@ -126,7 +138,8 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
     };
 
     const renderFeedback = () => {
-        if (status === 'correct') {
+        const overallStatus = getOverallStatus();
+        if (overallStatus === 'correct') {
             return (
                 <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                     <CheckCircle2 className="h-5 w-5"/>
@@ -134,11 +147,11 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                 </div>
             )
         }
-        if (status === 'incorrect') {
+        if (overallStatus === 'incorrect') {
              return (
                 <div className="flex items-center gap-2 text-destructive">
                     <Lightbulb className="h-5 w-5"/>
-                     <p className="font-semibold">答案不正确。正确答案是：<strong>{answer}</strong></p>
+                     <p className="font-semibold">部分答案不正确。正确答案是：{Object.values(answer).join(' / ')}</p>
                 </div>
             )
         }
@@ -152,7 +165,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                     {renderExercise()}
                 </blockquote>
                 <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                     {status === 'unanswered' ? (
+                     {getOverallStatus() === 'unanswered' ? (
                         <Button onClick={handleCheckAnswer} className="shrink-0 w-full">
                            检查答案
                         </Button>

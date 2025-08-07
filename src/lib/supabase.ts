@@ -25,10 +25,10 @@ export type Database = {
           term: string
           explanation: string
           exercise: string
-          answer: string
+          answer: any // Changed to any to support jsonb
           isDifficult: boolean
           status: 'unanswered' | 'correct' | 'incorrect'
-          userAnswer: string
+          userAnswer: any // Changed to any to support jsonb
           group_name: string | null
         },
         Insert: {
@@ -37,10 +37,10 @@ export type Database = {
           term: string
           explanation: string
           exercise: string
-          answer: string
+          answer: any // Changed to any to support jsonb
           isDifficult?: boolean
           status?: 'unanswered' | 'correct' | 'incorrect'
-          userAnswer?: string
+          userAnswer?: any // Changed to any to support jsonb
           group_name?: string | null
         },
         Update: {
@@ -49,10 +49,10 @@ export type Database = {
           term?: string
           explanation?: string
           exercise?: string
-          answer?: string
+          answer?: any // Changed to any to support jsonb
           isDifficult?: boolean
           status?: 'unanswered' | 'correct' | 'incorrect'
-          userAnswer?: string
+          userAnswer?: any // Changed to any to support jsonb
           group_name?: string | null
         }
       }
