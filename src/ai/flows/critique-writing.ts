@@ -27,13 +27,18 @@ const SuggestionSchema = z.object({
     comment: z.string().describe("做出此修改的简要理由。"),
 });
 
+const EvaluationDimensionSchema = z.object({
+    score: z.number().min(0).max(100).describe("一个 0 到 100 之间的整数，用于量化评价该维度的表现。分数越高越好。"),
+    comment: z.string().describe("对该维度的详细文字评价。"),
+});
+
 const DetailedEvaluationSchema = z.object({
-    themeAndIntention: z.string().describe("对“主题与立意”的评价：核心思想是否明确、深刻，有无独特视角或价值。"),
-    structureAndLogic: z.string().describe("对“结构与逻辑”的评价：整体布局是否合理，段落衔接是否自然，叙事/论证线索是否清晰。"),
-    languageAndExpression: z.string().describe("对“语言与表达”的评价：用词精准度、生动性，修辞运用是否恰当，有无语病或冗余。"),
-    charactersAndImagery: z.string().describe("对“人物与形象”的评价：人物塑造是否立体，行为逻辑是否合理，形象是否鲜明。如果文本类型不涉及，请说明原因。"),
-    plotAndPacing: z.string().describe("对“情节与节奏”的评价：情节设计是否紧凑、有张力，节奏把控是否张弛有度。如果文本类型不涉及，请说明原因。"),
-    innovationAndUniqueness: z.string().describe("对“创新性与独特性”的评价：有无新颖的手法、角度或表达，是否避免平庸化。"),
+    themeAndIntention: EvaluationDimensionSchema.describe("对“主题与立意”的评价：核心思想是否明确、深刻，有无独特视角或价值。"),
+    structureAndLogic: EvaluationDimensionSchema.describe("对“结构与逻辑”的评价：整体布局是否合理，段落衔接是否自然，叙事/论证线索是否清晰。"),
+    languageAndExpression: EvaluationDimensionSchema.describe("对“语言与表达”的评价：用词精准度、生动性，修辞运用是否恰当，有无语病或冗余。"),
+    charactersAndImagery: EvaluationDimensionSchema.describe("对“人物与形象”的评价：人物塑造是否立体，行为逻辑是否合理，形象是否鲜明。如果文本类型不涉及，请在评语中说明原因，分数为0。"),
+    plotAndPacing: EvaluationDimensionSchema.describe("对“情节与节奏”的评价：情节设计是否紧凑、有张力，节奏把控是否张弛有度。如果文本类型不涉及，请在评语中说明原因，分数为0。"),
+    innovationAndUniqueness: EvaluationDimensionSchema.describe("对“创新性与独特性”的评价：有无新颖的手法、角度或表达，是否避免平庸化。"),
 });
 
 const CritiqueWritingOutputSchema = z.object({
@@ -55,7 +60,13 @@ const prompt = ai.definePrompt({
 你的评价必须分为两个部分：
 
 第一部分：分模块综合评价 (evaluation)
-你必须严格按照以下六个维度进行评价，并为每个维度生成一段独立、完整的分析。如果某个维度不适用于所提供的文本类型（例如，一篇议论文没有“情节”），请在该维度下明确说明不适用的原因。
+你必须严格按照以下六个维度进行评价。对于每个维度，你都需要提供两项内容：
+1.  **score**: 一个从 0 到 100 的整数，用于量化评价该维度的表现。分数越高代表表现越好（例如：0-40 分表示差，41-70 分表示中等，71-100 分表示优秀）。
+2.  **comment**: 详细的文字评价。
+
+如果某个维度不适用于所提供的文本类型（例如，一篇议论文没有“情节”），请在该维度的 \`comment\` 中明确说明不适用的原因，并将 \`score\` 设为 0。
+
+六个评价维度是：
 1.  **主题与立意**：核心思想是否明确、深刻，有无独特视角或价值。
 2.  **结构与逻辑**：整体布局是否合理，段落衔接是否自然，叙事/论证线索是否清晰。
 3.  **语言与表达**：用词精准度、生动性，修辞运用是否恰当，有无语病或冗余。

@@ -22,3 +22,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .progress-bar-red {
+    @apply bg-red-500;
+  }
+  .progress-bar-yellow {
+    @apply bg-yellow-500;
+  }
+  .progress-bar-green {
+    @apply bg-green-500;
+  }
+}
