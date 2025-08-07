@@ -9,7 +9,6 @@ type LiteraryTermInsert = Database['public']['Tables']['literary_terms']['Insert
 type LiteraryTermUpdate = Database['public']['Tables']['literary_terms']['Update'];
 
 const TERMS_TABLE = 'literary_terms';
-const PDF_BUCKET = 'pdfs';
 
 const fromSupabase = (row: LiteraryTermRow): LiteraryTerm => ({
     ...row,
@@ -29,61 +28,6 @@ const toSupabase = (termData: LiteraryTermCreate): LiteraryTermInsert => {
         group_name: termData.groupName,
     };
 };
-
-export async function uploadPdf(file: File): Promise<{ publicUrl: string }> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-        .from(PDF_BUCKET)
-        .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false,
-        });
-
-    if (error) {
-        console.error('Error uploading file:', error);
-        throw new Error(`文件上传失败: ${error.message}`);
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-        .from(PDF_BUCKET)
-        .getPublicUrl(data.path);
-
-    return { publicUrl };
-}
-
-export async function listPdfs() {
-    const { data, error } = await supabase.storage.from(PDF_BUCKET).list('', {
-        limit: 100,
-        offset: 0,
-        sortBy: { column: 'created_at', order: 'desc' },
-    });
-
-    if (error) {
-        console.error('Error listing files:', error);
-        throw new Error(`获取文件列表失败: ${error.message}`);
-    }
-    
-    const filesWithUrls = data.map(file => {
-        const { data: { publicUrl } } = supabase.storage.from(PDF_BUCKET).getPublicUrl(file.name);
-        return { ...file, publicUrl };
-    });
-
-    return filesWithUrls;
-}
-
-export async function deletePdf(fileName: string): Promise<void> {
-    const { error } = await supabase.storage
-        .from(PDF_BUCKET)
-        .remove([fileName]);
-    
-    if (error) {
-        console.error('Error deleting file:', error);
-        throw new Error(`删除文件失败: ${error.message}`);
-    }
-}
-
 
 export async function addTerm(termData: LiteraryTermCreate): Promise<LiteraryTerm> {
     const supabaseData = toSupabase(termData);

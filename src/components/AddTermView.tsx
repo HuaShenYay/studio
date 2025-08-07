@@ -3,11 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PlusCircle, Loader2, Sparkles, PlusSquare, Upload, FileText } from "lucide-react";
-import { useState, useCallback } from "react";
+import { PlusCircle, Loader2, Sparkles, PlusSquare } from "lucide-react";
+import { useState } from "react";
 import { generateExplanation } from "@/ai/flows/generate-explanation";
 import { useToast } from "@/hooks/use-toast";
-import { useDropzone } from 'react-dropzone';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +20,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "./ui/card";
-import { Separator } from "./ui/separator";
 
 const formSchema = z.object({
     term: z.string().min(2, {
@@ -39,39 +36,12 @@ const formSchema = z.object({
 
 type AddTermViewProps = {
     onAddTerm: (term: string, explanation: string) => Promise<void>;
-    onPdfUpload: (file: File) => Promise<void>;
     isLoading: boolean;
 }
 
-export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTermViewProps) {
+export default function AddTermView({ onAddTerm, isLoading }: AddTermViewProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const { toast } = useToast();
-    const [fileName, setFileName] = useState<string | null>(null);
-
-    const onDrop = useCallback(async (acceptedFiles: File[]) => {
-        const file = acceptedFiles[0];
-        if (file) {
-            setFileName(file.name);
-            try {
-                await onPdfUpload(file);
-                // Reset file name on success if needed, or parent component can handle it.
-                // setFileName(null);
-            } catch (error) {
-                console.error("Upload failed", error);
-                // The parent component should show a toast on error.
-                setFileName(null);
-            }
-        }
-    }, [onPdfUpload]);
-
-
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
-        accept: { 'application/pdf': ['.pdf'] },
-        maxFiles: 1,
-        disabled: isLoading,
-    });
-
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -120,49 +90,8 @@ export default function AddTermView({ onAddTerm, onPdfUpload, isLoading }: AddTe
                 </div>
                 <div>
                     <h2 className="text-3xl font-bold text-foreground">添加新术语</h2>
-                    <p className="text-muted-foreground">手动输入或从PDF批量导入，AI将自动生成练习。</p>
+                    <p className="text-muted-foreground">手动输入一个术语，AI将自动为您生成练习。</p>
                 </div>
-            </div>
-
-            <Card className="mb-8">
-                <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">从 PDF 批量导入</h3>
-                    <div {...getRootProps()} className={`flex justify-center items-center w-full px-6 py-10 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'} ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}>
-                        <input {...getInputProps()} />
-                        <div className="text-center">
-                            {isLoading ? (
-                               <div className="flex flex-col items-center gap-2">
-                                    <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
-                                    <p className="mt-4 text-sm text-primary font-semibold">AI 正在处理您的文档...</p>
-                                    <p className="text-xs text-muted-foreground mt-1">请稍候，这可能需要一点时间</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                                    {fileName ? (
-                                        <div className="mt-4 flex items-center gap-2">
-                                            <FileText className="h-5 w-5 text-primary" />
-                                            <p className="font-semibold text-primary">{fileName}</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <p className="mt-4 text-sm text-muted-foreground">
-                                                <span className="font-semibold text-primary">点击上传</span> 或拖拽文件到此
-                                            </p>
-                                            <p className="text-xs text-muted-foreground mt-1">仅支持PDF文件</p>
-                                        </>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <div className="flex items-center my-6">
-                <Separator className="flex-grow" />
-                <span className="mx-4 text-muted-foreground text-sm">或</span>
-                <Separator className="flex-grow" />
             </div>
 
             <h3 className="text-lg font-semibold mb-4">手动添加单个术语</h3>

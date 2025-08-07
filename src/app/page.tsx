@@ -6,14 +6,11 @@ import { generateFillInBlankExercises } from '@/ai/flows/generate-fill-in-blank'
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import AddTermView from '@/components/AddTermView';
 import PracticeSession from '@/components/PracticeSession';
-import PdfListView from '@/components/PdfListView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
-import { addTerm, getTerms, updateTerm, deleteTerm, uploadPdf, getGroups, resetAllTerms } from '@/services/terms-service';
-import { extractTextFromPdf } from '@/ai/flows/extract-text-from-pdf';
-import { extractTermsFromText } from '@/ai/flows/extract-terms-from-text';
+import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms } from '@/services/terms-service';
 
-type View = 'practice' | 'add' | 'files';
+type View = 'practice' | 'add';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
@@ -136,95 +133,6 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         }
     };
     
-    const handleProcessPdf = async (publicUrl: string, fileName: string) => {
-        setIsProcessing(true);
-        toast({ title: "AI正在处理中...", description: `步骤 1/3: 正在从 ${fileName} 提取文本...` });
-
-        try {
-            // Step 1: Convert PDF to Text
-            const { text } = await extractTextFromPdf({ pdfUrl: publicUrl });
-            if (!text) {
-                toast({ variant: "destructive", title: "提取失败", description: "AI 未能从 PDF 提取任何文本。" });
-                setIsProcessing(false);
-                return;
-            }
-            
-            toast({ title: "提取成功！", description: `步骤 2/3: 正在从文本中提取术语...` });
-
-            // Step 2: Extract terms from Text
-            const { extractedTerms } = await extractTermsFromText({ textContent: text });
-
-            if (!extractedTerms || extractedTerms.length === 0) {
-                toast({ variant: "destructive", title: "提取失败", description: "AI未能在文档中找到可用的术语和解释。" });
-                setIsProcessing(false);
-                return;
-            }
-
-            toast({ title: "提取成功！", description: `步骤 3/3: 识别出 ${extractedTerms.length} 个术语，正在为您生成练习...` });
-
-            let count = 0;
-            const newTerms: LiteraryTerm[] = [];
-            for (const { term, explanation } of extractedTerms) {
-                try {
-                    const exerciseResult = await generateFillInBlankExercises({ term, explanation });
-                    const newTermData: LiteraryTermCreate = {
-                        term,
-                        explanation,
-                        exercise: exerciseResult.exercise,
-                        answer: term,
-                        isDifficult: false,
-                        status: 'unanswered',
-                        userAnswer: '',
-                        groupName: fileName,
-                    };
-                    const newTerm = await addTerm(newTermData);
-                    newTerms.push(newTerm);
-                    count++;
-                } catch (genError) {
-                    console.error(`Failed to generate exercise for ${term}`, genError);
-                }
-            }
-            
-            setTerms((prevTerms) => [...newTerms, ...prevTerms]);
-
-            toast({
-                title: "批量导入完成！",
-                description: `成功添加了 ${count} 个新术语到小组“${fileName}”中。`,
-            });
-            setCurrentView('practice');
-        } catch (error) {
-             console.error('Failed to process PDF:', error);
-            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
-            toast({
-                variant: "destructive",
-                title: "PDF处理失败",
-                description: `${errorMessage}`,
-            });
-        } finally {
-            setIsProcessing(false);
-        }
-    }
-
-
-    const handlePdfUpload = async (file: File) => {
-        setIsProcessing(true);
-        toast({ title: "文件上传中...", description: "正在将您的PDF文件安全地上传到云端存储..." });
-        try {
-            const { publicUrl } = await uploadPdf(file);
-            await handleProcessPdf(publicUrl, file.name);
-        } catch (error) {
-            console.error('Failed to upload PDF:', error);
-            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
-            toast({
-                variant: "destructive",
-                title: "PDF上传失败",
-                description: `${errorMessage}`,
-            });
-        } finally {
-            // isProcessing will be set to false inside handleProcessPdf
-        }
-    };
-
     const handleUpdateTerm = async (updatedTerm: LiteraryTerm) => {
         setTerms((prevTerms) =>
             prevTerms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
@@ -278,9 +186,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
             case 'practice':
                 return <PracticeSession terms={terms} onUpdateTerm={handleUpdateTerm} onDeleteTerm={handleDeleteTerm} getGroups={getGroups} />;
             case 'add':
-                return <AddTermView onAddTerm={handleAddTerm} onPdfUpload={handlePdfUpload} isLoading={isProcessing} />;
-            case 'files':
-                return <PdfListView onGenerate={handleProcessPdf} isProcessing={isProcessing} />;
+                return <AddTermView onAddTerm={handleAddTerm} isLoading={isProcessing} />;
         }
     }
 
