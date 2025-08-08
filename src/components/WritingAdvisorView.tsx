@@ -61,7 +61,7 @@ export default function WritingAdvisorView() {
         try {
             const critiqueResult = await critiqueWriting({
                 textToCritique: values.textToCritique,
-                style: values.style as LiteraryStyle,
+                style: values.style,
             });
             setResult(critiqueResult);
         } catch (error) {
@@ -198,9 +198,9 @@ export default function WritingAdvisorView() {
                                                 value={module.data.score} 
                                                 className="h-3"
                                                 indicatorClassName={cn({
-                                                    'progress-bar-red': module.data.score < 40,
-                                                    'progress-bar-yellow': module.data.score >= 40 && module.data.score < 70,
-                                                    'progress-bar-green': module.data.score >= 70,
+                                                    'bg-red-500': module.data.score < 40,
+                                                    'bg-yellow-500': module.data.score >= 40 && module.data.score < 70,
+                                                    'bg-green-500': module.data.score >= 70,
                                                 })}
                                             />
                                             <span className="font-bold text-lg w-12 text-right">{module.data.score}</span>
