@@ -17,6 +17,7 @@ import DueReviewView from '@/components/DueReviewView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, renameGroup, deleteGroup as deleteGroupService } from '@/services/terms-service';
+import AboutView from '@/components/AboutView';
 
 type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
 
@@ -231,26 +232,7 @@ export default function Home() {
             case 'advisor':
                 return <WritingAdvisorView />;
             case 'about':
-                return (
-                    <div className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>文词通 · 软件介绍</CardTitle>
-                                <CardDescription>一体化的术语管理、学习与写作辅助平台</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-3 text-muted-foreground">
-                                <p>文词通专注于文学术语的系统化学习与写作能力提升。核心优势：</p>
-                                <ul className="list-disc pl-6 space-y-1">
-                                    <li><b>FSRS 记忆算法</b>：基于评分（Again/Hard/Good/Easy）动态安排复习，平衡记忆稳定度与学习效率。</li>
-                                    <li><b>Gemini-2.5-Flash</b>：用新一代生成式模型提供术语解释、评论/论述写作建议与每日作品选。</li>
-                                    <li><b>直观学习模式</b>：直接在原文中“就地挖空”，保持文本一致性；学习模式下可集中管理术语与分组。</li>
-                                    <li><b>到期复习</b>：今日到期卡片集中复盘，先核对再评分，保障记忆曲线有效更新。</li>
-                                </ul>
-                                <p>从“添加术语—自动挖空—学习管理—到期复习—写作指导”，形成闭环的高效学习体验。</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                );
+                return <AboutView />;
             case 'dailyWorks':
                 return <DailyWorks />;
             case 'critiqueAdvice':
