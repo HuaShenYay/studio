@@ -1,9 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Star, CheckCircle2, MoreVertical, Trash2, Lightbulb, RefreshCcw, FolderCog } from 'lucide-react';
+import { Star, CheckCircle2, MoreVertical, Trash2, Lightbulb, RefreshCcw, FolderCog, Pencil } from 'lucide-react';
 import type { LiteraryTerm, PracticeStatus, TermGroup } from '@/types';
+import { isDue, reviewFsrs, readFsrsFromUserAnswer, writeFsrsToUserAnswer, type FsrsGrade } from '@/lib/fsrs';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import {
@@ -18,6 +20,14 @@ import {
   DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { Combobox } from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,11 +46,16 @@ type ExerciseCardProps = {
     onUpdate: (term: LiteraryTerm) => void;
     onDelete: (id: number) => void;
     groups: TermGroup[];
+    mode?: 'learn' | 'review';
 };
 
-export default function ExerciseCard({ termData, onUpdate, onDelete, groups = [] }: ExerciseCardProps) {
+export default function ExerciseCard({ termData, onUpdate, onDelete, groups = [], mode = 'review' }: ExerciseCardProps) {
     const { answer, exercise, status: initialStatus, userAnswer: initialUserAnswer } = termData;
     const [userAnswers, setUserAnswers] = useState<Record<string, string>>(initialUserAnswer || {});
+    const fsrsState = readFsrsFromUserAnswer(initialUserAnswer) || null;
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editTerm, setEditTerm] = useState(termData.term);
+    const [editExplanation, setEditExplanation] = useState(termData.explanation);
     const [status, setStatus] = useState<PracticeStatus | Record<string, PracticeStatus>>(initialStatus);
 
     const blankCount = (exercise.match(/____/g) || []).length;
@@ -71,8 +86,14 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
         }
         
         setStatus(allCorrect ? 'correct' : newStatus);
-        onUpdate({ ...termData, status: allCorrect ? 'correct' : 'incorrect', userAnswer: userAnswers });
+        onUpdate({ ...termData, status: allCorrect ? 'correct' : 'incorrect', userAnswer: { ...userAnswers } });
     };
+
+    const handleGrade = (grade: FsrsGrade) => {
+        const nextFsrs = reviewFsrs(fsrsState, grade);
+        const nextUserAnswer = writeFsrsToUserAnswer({ ...userAnswers }, nextFsrs);
+        onUpdate({ ...termData, userAnswer: nextUserAnswer });
+    }
     
     const handleTryAgain = () => {
         setStatus('unanswered');
@@ -89,6 +110,18 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
     
     const handleGroupChange = (newGroupName: string) => {
         onUpdate({ ...termData, groupName: newGroupName });
+    };
+
+    const handleOpenEdit = () => {
+        setEditTerm(termData.term);
+        setEditExplanation(termData.explanation);
+        setIsEditOpen(true);
+    };
+
+    const handleSaveEdit = () => {
+        const next = { ...termData, term: editTerm.trim(), explanation: editExplanation.trim() };
+        onUpdate(next);
+        setIsEditOpen(false);
     };
     
     const getOverallStatus = (): PracticeStatus => {
@@ -117,18 +150,22 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                         <span>{part}</span>
                         {index < parts.length - 1 && (
                              <span className="inline-block mx-1 my-1 align-bottom">
-                                <Input
-                                    type="text"
-                                    placeholder={`答案 ${index + 1}`}
-                                    value={userAnswers[index] || ''}
-                                    onChange={(e) => handleAnswerChange(index, e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && getOverallStatus() === 'unanswered' && handleCheckAnswer()}
-                                    disabled={getOverallStatus() !== 'unanswered'}
-                                    className={cn(
-                                        "text-base inline-block w-36 h-8",
-                                        typeof status === 'object' && status[index] === 'incorrect' && "border-destructive focus-visible:ring-destructive"
-                                    )}
-                                />
+                                {mode === 'learn' ? (
+                                  <span className="px-2 py-1 rounded bg-muted text-muted-foreground">{answer[index] || ''}</span>
+                                ) : (
+                                  <Input
+                                      type="text"
+                                      placeholder={`答案 ${index + 1}`}
+                                      value={userAnswers[index] || ''}
+                                      onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                      onKeyDown={(e) => e.key === 'Enter' && getOverallStatus() === 'unanswered' && handleCheckAnswer()}
+                                      disabled={getOverallStatus() !== 'unanswered'}
+                                      className={cn(
+                                          "text-base inline-block w-36 h-8",
+                                          typeof status === 'object' && status[index] === 'incorrect' && "border-destructive focus-visible:ring-destructive"
+                                      )}
+                                  />
+                                )}
                              </span>
                         )}
                     </React.Fragment>
@@ -158,28 +195,42 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
         return null;
     }
 
+    const due = isDue(fsrsState);
     return (
         <Card className={cn("transition-all duration-300", borderColorClass, backgroundColorClass)}>
             <CardContent className="pt-6">
                 <blockquote className="border-l-4 border-primary/20 pl-4">
                     {renderExercise()}
                 </blockquote>
-                <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                     {getOverallStatus() === 'unanswered' ? (
-                        <Button onClick={handleCheckAnswer} className="shrink-0 w-full">
-                           检查答案
-                        </Button>
+                {mode === 'review' ? (
+                  <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                    {getOverallStatus() === 'unanswered' ? (
+                        <Button onClick={handleCheckAnswer} className="shrink-0 w-full">检查答案</Button>
                     ) : (
-                         <Button onClick={handleTryAgain} variant="secondary" className="shrink-0 w-full">
-                            <RefreshCcw className="mr-2 h-4 w-4"/> 再试一次
-                         </Button>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full">
+                            <Button onClick={() => handleGrade('again')} variant="destructive">再现（Again）</Button>
+                            <Button onClick={() => handleGrade('hard')} variant="secondary">较难（Hard）</Button>
+                            <Button onClick={() => handleGrade('good')}>良好（Good）</Button>
+                            <Button onClick={() => handleGrade('easy')} variant="outline">容易（Easy）</Button>
+                            <Button onClick={handleTryAgain} variant="ghost"><RefreshCcw className="mr-2 h-4 w-4"/>再试一次</Button>
+                        </div>
                     )}
-                </div>
+                  </div>
+                ) : null}
                  <div className="mt-4 min-h-[28px]">
                     {renderFeedback()}
                 </div>
             </CardContent>
-            <CardFooter className="bg-transparent dark:bg-background/20 px-4 py-2 flex justify-end items-center gap-4">
+            <CardFooter className="bg-transparent dark:bg-background/20 px-4 py-2 flex justify-between items-center gap-4">
+                 {mode === 'review' ? (
+                   <div className="text-xs text-muted-foreground">
+                      {fsrsState ? (
+                          <>下次复习时间：{new Date(fsrsState.scheduledAt).toLocaleString()} {due ? '(到期)' : ''}</>
+                      ) : (
+                          <>尚未建立记忆曲线，完成一次打分以开始安排复习。</>
+                      )}
+                   </div>
+                 ) : <div />}
                  <div className='flex items-center flex-shrink-0'>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -210,6 +261,11 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                                 </DropdownMenuSubContent>
                             </DropdownMenuPortal>
                          </DropdownMenuSub>
+                         
+                         <DropdownMenuItem onClick={(e)=>{ e.preventDefault(); handleOpenEdit(); }}>
+                           <Pencil className="mr-2 h-4 w-4" />
+                           <span>编辑内容</span>
+                         </DropdownMenuItem>
                         
                         <DropdownMenuSeparator />
                         
@@ -238,6 +294,22 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                     </DropdownMenu>
                 </div>
             </CardFooter>
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>编辑术语与描述</DialogTitle>
+                  <DialogDescription>修改后将立即保存至当前卡片。</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3">
+                  <Input value={editTerm} onChange={(e)=> setEditTerm(e.target.value)} placeholder="术语" />
+                  <Textarea value={editExplanation} rows={5} onChange={(e)=> setEditExplanation(e.target.value)} placeholder="描述/解释" />
+                </div>
+                <DialogFooter>
+                  <Button variant="secondary" onClick={()=> setIsEditOpen(false)}>取消</Button>
+                  <Button onClick={handleSaveEdit}>保存</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
         </Card>
     );
 }

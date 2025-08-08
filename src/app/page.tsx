@@ -1,61 +1,27 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, ListChecks } from 'lucide-react';
 import { generateFillInBlankExercise } from '@/ai/flows/generate-fill-in-blank';
 import type { LiteraryTerm, LiteraryTermCreate } from '@/types';
 import PracticeSession from '@/components/PracticeSession';
 import WritingAdvisorView from '@/components/WritingAdvisorView';
+import DailyWorks from '@/components/DailyWorks';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { generateCritiqueAdvice } from '@/ai/flows/generate-critique-advice';
+import type { CritiqueAdviceOutput } from '@/ai/flows/generate-critique-advice';
+import { generateArgumentEssay } from '@/ai/flows/generate-argument-essay';
+import type { ArgumentEssayOutput } from '@/ai/flows/generate-argument-essay';
+import DueReviewView from '@/components/DueReviewView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, renameGroup, deleteGroup as deleteGroupService } from '@/services/terms-service';
 
-type View = 'practice' | 'advisor';
+type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const { toast } = useToast();
-
-    const handleLogout = useCallback(() => {
-        sessionStorage.removeItem('isAuthenticated');
-        setIsAuthenticated(false);
-        router.push('/login');
-    }, [router]);
-
-    useEffect(() => {
-        const performAuth = async () => {
-            const loggedIn = searchParams.get('loggedin') === 'true';
-            let sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
-
-            if (loggedIn) {
-                sessionStorage.setItem('isAuthenticated', 'true');
-                const newUrl = window.location.pathname;
-                window.history.replaceState({}, '', newUrl);
-                sessionAuth = true;
-            }
-
-            if (sessionAuth) {
-                setIsAuthenticated(true);
-            } else {
-                router.push('/login');
-            }
-        };
-
-        performAuth();
-    }, [searchParams, router, toast]);
-
-    if (!isAuthenticated) {
-        return (
-            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-lg">正在验证身份...</p>
-            </div>
-        );
-    }
-
-    return React.cloneElement(children as React.ReactElement, { handleLogout });
+    return <>{children}</>;
 }
 
 export default function Home() {
@@ -70,7 +36,13 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [currentView, setCurrentView] = useState<View>('practice');
+    const [currentView, setCurrentView] = useState<View>('about');
+    const [advice, setAdvice] = useState<CritiqueAdviceOutput | null>(null);
+    const [essay, setEssay] = useState<ArgumentEssayOutput | null>(null);
+    const [adviceLoading, setAdviceLoading] = useState(false);
+    const [essayLoading, setEssayLoading] = useState(false);
+    const [adviceInput, setAdviceInput] = useState('请以“现代都市孤独体验”为主题给出评论写作建议');
+    const [essayInput, setEssayInput] = useState('结合鲁迅小说中的“启蒙与反启蒙”主题进行论述');
     const { toast } = useToast();
     
     const fetchTerms = useCallback(async () => {
@@ -118,7 +90,10 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const handleAddTerm = async (term: string, explanation: string, groupName: string | null) => {
         setIsProcessing(true);
         try {
-            const exerciseResult = await generateFillInBlankExercise({ term, explanation });
+            // 动态确定挖空数量：每 30 字考虑挖 1 个（范围 3-8）
+            const textLen = explanation.replace(/\s+/g, '').length;
+            const dynamicBlanks = Math.max(3, Math.min(8, Math.round(textLen / 30)));
+            const exerciseResult = await generateFillInBlankExercise({ term, explanation, blanks: dynamicBlanks });
             const newTermData: LiteraryTermCreate = {
                 term,
                 explanation,
@@ -241,7 +216,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
 
 
     const renderContent = () => {
-        if (isLoading && currentView === 'practice') {
+        if (isLoading && (currentView === 'practice')) {
             return (
                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card h-full">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -251,7 +226,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
         }
 
         switch (currentView) {
-            case 'practice':
+            case 'practice': // 合并“到期复习 + 全部练习”
                 return (
                     <PracticeSession
                         terms={terms}
@@ -262,10 +237,108 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
                         onDeleteGroup={handleDeleteGroup}
                         onAddTerm={handleAddTerm}
                         isAddingTerm={isProcessing}
+                        onImported={fetchTerms}
                     />
                 );
             case 'advisor':
                 return <WritingAdvisorView />;
+            case 'about':
+                return (
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>文词通 · 软件介绍</CardTitle>
+                                <CardDescription>一体化的术语管理、学习与写作辅助平台</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-muted-foreground">
+                                <p>文词通专注于文学术语的系统化学习与写作能力提升。核心优势：</p>
+                                <ul className="list-disc pl-6 space-y-1">
+                                    <li><b>FSRS 记忆算法</b>：基于评分（Again/Hard/Good/Easy）动态安排复习，平衡记忆稳定度与学习效率。</li>
+                                    <li><b>Gemini-2.5-Flash</b>：用新一代生成式模型提供术语解释、评论/论述写作建议与每日作品选。</li>
+                                    <li><b>直观学习模式</b>：直接在原文中“就地挖空”，保持文本一致性；学习模式下可集中管理术语与分组。</li>
+                                    <li><b>到期复习</b>：今日到期卡片集中复盘，先核对再评分，保障记忆曲线有效更新。</li>
+                                </ul>
+                                <p>从“添加术语—自动挖空—学习管理—到期复习—写作指导”，形成闭环的高效学习体验。</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                );
+            case 'dailyWorks':
+                return <DailyWorks />;
+            case 'critiqueAdvice':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5"/>文学评论写作建议</CardTitle>
+                            <CardDescription>输入主题或作品名称，生成评论大纲与论证思路。</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Textarea value={adviceInput} onChange={e=>setAdviceInput(e.target.value)} className="min-h-[100px]"/>
+                            <Button onClick={async()=>{setAdviceLoading(true);setAdvice(null);try{const res=await generateCritiqueAdvice({topic:adviceInput,era:'中国现当代',focus:'主题、结构、语言、意象、叙事策略'});setAdvice(res);}catch(e:any){toast({variant:'destructive',title:'生成失败',description:e?.message||'请稍后再试'})}finally{setAdviceLoading(false)}}} disabled={adviceLoading}>
+                                {adviceLoading? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                生成建议
+                            </Button>
+                            {advice && (
+                                <div className="space-y-4 text-muted-foreground">
+                                    <div>
+                                        <h4 className="font-semibold mb-2">评论大纲</h4>
+                                        <ul className="list-disc pl-6">{advice.outline.map((o,i)=>(<li key={i}>{o}</li>))}</ul>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold mb-2">论点-证据-分析 示例</h4>
+                                        <ul className="list-disc pl-6 space-y-2">
+                                            {advice.arguments.map((a,i)=> (<li key={i}><p><b>论点：</b>{a.point}</p><p><b>证据：</b>{a.evidence}</p><p><b>分析：</b>{a.analysis}</p></li>))}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold mb-2">常见误区</h4>
+                                        <ul className="list-disc pl-6">{advice.pitfalls.map((p,i)=>(<li key={i}>{p}</li>))}</ul>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                );
+            case 'argumentEssay':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5"/>论述题写作建议</CardTitle>
+                            <CardDescription>输入题目或材料，生成中心论点与段落大纲。</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Textarea value={essayInput} onChange={e=>setEssayInput(e.target.value)} className="min-h-[100px]"/>
+                            <Button onClick={async()=>{setEssayLoading(true);setEssay(null);try{const res=await generateArgumentEssay({prompt:essayInput,era:'中国现当代',length:600});setEssay(res);}catch(e:any){toast({variant:'destructive',title:'生成失败',description:e?.message||'请稍后再试'})}finally{setEssayLoading(false)}}} disabled={essayLoading}>
+                                {essayLoading? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                生成建议
+                            </Button>
+                            {essay && (
+                                <div className="space-y-4 text-muted-foreground">
+                                    <div>
+                                        <h4 className="font-semibold mb-2">中心论点</h4>
+                                        <p>{essay.thesis}</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold mb-2">段落大纲</h4>
+                                        <ul className="list-disc pl-6">{essay.outline.map((o,i)=>(<li key={i}>{o}</li>))}</ul>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold mb-2">段落写作提示</h4>
+                                        <ul className="list-disc pl-6">{essay.paragraphHints.map((h,i)=>(<li key={i}>{h}</li>))}</ul>
+                                    </div>
+                                    {essay.references.length>0 && (
+                                        <div>
+                                            <h4 className="font-semibold mb-2">可引用参考</h4>
+                                            <ul className="list-disc pl-6">{essay.references.map((r,i)=>(<li key={i}>{r}</li>))}</ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                );
+            case 'dueReview':
+                return <DueReviewView />;
         }
     }
 

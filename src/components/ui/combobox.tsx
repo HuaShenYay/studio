@@ -32,7 +32,8 @@ export function Combobox({ options, value, onChange, entityName = 'item' }: Comb
   const [search, setSearch] = React.useState("")
   
   const handleSelect = (currentValue: string) => {
-    onChange(currentValue === value ? "" : currentValue)
+    // 始终设置为选择的值，不进行“再次选择即清空”的切换，避免将分组错误置为空字符串
+    onChange(currentValue)
     setOpen(false)
     setSearch("")
   }
@@ -72,6 +73,12 @@ export function Combobox({ options, value, onChange, entityName = 'item' }: Comb
                 if(e.key === 'Enter') {
                     handleCreateNew();
                 }
+            }}
+            onBlur={() => {
+              // 允许直接输入后点击外部创建新分组
+              if (search && !options.find(opt => opt.value.toLowerCase() === search.toLowerCase())) {
+                handleCreateNew();
+              }
             }}
           />
           <CommandList>

@@ -36,6 +36,7 @@ type ManageGroupsDialogProps = {
   groups: TermGroup[];
   onRenameGroup: (oldName: string, newName: string) => Promise<void>;
   onDeleteGroup: (groupName: string) => Promise<void>;
+  onCreateGroup?: (groupName: string) => Promise<void> | void;
 };
 
 export default function ManageGroupsDialog({
@@ -44,9 +45,11 @@ export default function ManageGroupsDialog({
   groups,
   onRenameGroup,
   onDeleteGroup,
+  onCreateGroup,
 }: ManageGroupsDialogProps) {
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState('');
   const { toast } = useToast();
 
   const handleStartEditing = (group: TermGroup) => {
@@ -91,6 +94,39 @@ export default function ManageGroupsDialog({
             在这里重命名或删除您现有的分组。
           </DialogDescription>
         </DialogHeader>
+        <div className="grid gap-2 pb-2">
+          <Input
+            placeholder="输入新分组名称（回车或点击创建）"
+            value={creating}
+            onChange={(e) => setCreating(e.target.value)}
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                if (!creating.trim()) return;
+                if (groups.some(g => g.groupName.toLowerCase() === creating.trim().toLowerCase())) {
+                  toast({ variant: 'destructive', title: '名称已存在', description: '请使用不同的分组名。' });
+                  return;
+                }
+                onCreateGroup?.(creating.trim());
+                setCreating('');
+                toast({ title: '已创建分组', description: '可在添加术语时选择该分组。' });
+              }
+            }}
+          />
+          <div className="flex justify-end">
+            <Button
+              onClick={async () => {
+                if (!creating.trim()) return;
+                if (groups.some(g => g.groupName.toLowerCase() === creating.trim().toLowerCase())) {
+                  toast({ variant: 'destructive', title: '名称已存在', description: '请使用不同的分组名。' });
+                  return;
+                }
+                onCreateGroup?.(creating.trim());
+                setCreating('');
+                toast({ title: '已创建分组', description: '可在添加术语时选择该分组。' });
+              }}
+            >创建分组</Button>
+          </div>
+        </div>
         <ScrollArea className="h-72 w-full pr-6">
           <div className="grid gap-4 py-4">
             {groups.length > 0 ? groups.map((group) => (

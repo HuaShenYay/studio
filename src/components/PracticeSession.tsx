@@ -8,6 +8,7 @@ import ExerciseCard from "@/components/ExerciseCard";
 import { BrainCircuit, BookCopy, Settings, PlusSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ManageGroupsDialog from "./ManageGroupsDialog";
+import { createGroupIfNotExists } from "@/services/terms-service";
 import { Button } from "./ui/button";
 import AddTermDialog from "./AddTermDialog";
 
@@ -20,6 +21,7 @@ type PracticeSessionProps = {
     onDeleteGroup: (groupName: string) => Promise<void>;
     onAddTerm: (term: string, explanation: string, groupName: string | null) => Promise<boolean>;
     isAddingTerm: boolean;
+    onImported: () => Promise<void>;
 }
 
 export default function PracticeSession({ 
@@ -30,7 +32,8 @@ export default function PracticeSession({
     onRenameGroup,
     onDeleteGroup,
     onAddTerm,
-    isAddingTerm
+    isAddingTerm,
+    onImported,
 }: PracticeSessionProps) {
     const [groups, setGroups] = useState<TermGroup[]>([]);
     const [selectedGroup, setSelectedGroup] = useState<string>('all');
@@ -38,9 +41,35 @@ export default function PracticeSession({
     const [isAddTermOpen, setIsAddTermOpen] = useState(false);
     const { toast } = useToast();
 
+    const getLocalGroups = (): string[] => {
+        try {
+            const raw = localStorage.getItem('customGroups');
+            if (!raw) return [];
+            const arr = JSON.parse(raw);
+            return Array.isArray(arr) ? arr.filter((s) => typeof s === 'string' && s.trim() !== '').map((s) => s.trim()) : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const setLocalGroups = (names: string[]) => {
+        const unique = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean)));
+        localStorage.setItem('customGroups', JSON.stringify(unique));
+    };
+
+    const getGroupsMerged = useCallback(async (): Promise<TermGroup[]> => {
+        const server = await getGroups();
+        const local = getLocalGroups();
+        const map = new Map<string, number>(server.map(g => [g.groupName, g.count]));
+        for (const name of local) {
+            if (!map.has(name)) map.set(name, 0);
+        }
+        return Array.from(map.entries()).map(([groupName, count]) => ({ groupName, count }));
+    }, [getGroups]);
+
     const fetchGroups = useCallback(async () => {
         try {
-            const fetchedGroups = await getGroups();
+            const fetchedGroups = await getGroupsMerged();
             setGroups(fetchedGroups);
         } catch (error) {
             console.error("Failed to fetch groups:", error);
@@ -51,7 +80,7 @@ export default function PracticeSession({
                 description: `无法从服务器获取小组列表: ${errorMessage}`,
             });
         }
-    }, [getGroups, toast]);
+    }, [getGroupsMerged, toast]);
 
     useEffect(() => {
         fetchGroups();
@@ -72,7 +101,7 @@ export default function PracticeSession({
             return (
                 <div className="space-y-4">
                     {termList.map(term => (
-                        <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} groups={groups} />
+                        <ExerciseCard key={term.id} termData={term} onUpdate={onUpdateTerm} onDelete={onDeleteTerm} groups={groups} mode="learn" />
                     ))}
                 </div>
             );
@@ -94,14 +123,16 @@ export default function PracticeSession({
                         <BrainCircuit className="h-8 w-8" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-bold text-foreground">练习模式</h2>
-                        <p className="text-muted-foreground">通过自动生成的填空题进行练习。</p>
+                        <h2 className="text-3xl font-bold text-foreground">学习模式</h2>
+                        <p className="text-muted-foreground">直接展示答案，专注于管理与记忆梳理（编辑术语/描述、修改分组、标记复习）。</p>
                     </div>
                  </div>
+                 <div className="flex gap-2">
                  <Button onClick={() => setIsAddTermOpen(true)}>
                     <PlusSquare className="mr-2 h-4 w-4" />
                     添加新术语
                  </Button>
+                 </div>
             </div>
              <div className="flex items-center gap-2 mb-6">
                 <BookCopy className="h-5 w-5 text-muted-foreground" />
@@ -146,15 +177,44 @@ export default function PracticeSession({
             open={isManageGroupsOpen}
             onOpenChange={setIsManageGroupsOpen}
             groups={groups}
-            onRenameGroup={onRenameGroup}
-            onDeleteGroup={onDeleteGroup}
+            onRenameGroup={async (oldName, newName) => {
+                const target = groups.find(g => g.groupName === oldName);
+                if (target && target.count === 0) {
+                    const locals = getLocalGroups();
+                    const updated = locals.map(n => n === oldName ? newName : n);
+                    setLocalGroups(updated);
+                    await fetchGroups();
+                    return;
+                }
+                await onRenameGroup(oldName, newName);
+                await fetchGroups();
+            }}
+            onDeleteGroup={async (name) => {
+                const target = groups.find(g => g.groupName === name);
+                if (target && target.count === 0) {
+                    const locals = getLocalGroups().filter(n => n !== name);
+                    setLocalGroups(locals);
+                    await fetchGroups();
+                    return;
+                }
+                await onDeleteGroup(name);
+                await fetchGroups();
+            }}
+            onCreateGroup={async (name) => {
+                const locals = getLocalGroups();
+                if (!locals.includes(name)) {
+                    setLocalGroups([...locals, name]);
+                }
+                await createGroupIfNotExists(name);
+                await fetchGroups();
+            }}
         />
         <AddTermDialog
             open={isAddTermOpen}
             onOpenChange={setIsAddTermOpen}
             onAddTerm={onAddTerm}
             isLoading={isAddingTerm}
-            getGroups={getGroups}
+            getGroups={getGroupsMerged}
         />
         </>
     )

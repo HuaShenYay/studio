@@ -30,6 +30,13 @@ export type Database = {
           status: 'unanswered' | 'correct' | 'incorrect'
           userAnswer: any // Changed to any to support jsonb
           group_name: string | null
+          // FSRS columns (formal version)
+          fsrs_stability_days?: number
+          fsrs_difficulty?: number
+          fsrs_scheduled_at?: string
+          fsrs_last_reviewed_at?: string | null
+          fsrs_reps?: number
+          fsrs_lapses?: number
         },
         Insert: {
           id?: number
@@ -42,6 +49,12 @@ export type Database = {
           status?: 'unanswered' | 'correct' | 'incorrect'
           userAnswer?: any // Changed to any to support jsonb
           group_name?: string | null
+          fsrs_stability_days?: number
+          fsrs_difficulty?: number
+          fsrs_scheduled_at?: string
+          fsrs_last_reviewed_at?: string | null
+          fsrs_reps?: number
+          fsrs_lapses?: number
         },
         Update: {
           id?: number
@@ -54,6 +67,41 @@ export type Database = {
           status?: 'unanswered' | 'correct' | 'incorrect'
           userAnswer?: any // Changed to any to support jsonb
           group_name?: string | null
+          fsrs_stability_days?: number
+          fsrs_difficulty?: number
+          fsrs_scheduled_at?: string
+          fsrs_last_reviewed_at?: string | null
+          fsrs_reps?: number
+          fsrs_lapses?: number
+        }
+      }
+      , review_logs: {
+        Row: {
+          id: number
+          term_id: number
+          reviewed_at: string
+          grade: 'again' | 'hard' | 'good' | 'easy'
+          stability_days: number
+          difficulty: number
+          next_due_at: string
+        },
+        Insert: {
+          id?: number
+          term_id: number
+          reviewed_at?: string
+          grade: 'again' | 'hard' | 'good' | 'easy'
+          stability_days: number
+          difficulty: number
+          next_due_at: string
+        },
+        Update: {
+          id?: number
+          term_id?: number
+          reviewed_at?: string
+          grade?: 'again' | 'hard' | 'good' | 'easy'
+          stability_days?: number
+          difficulty?: number
+          next_due_at?: string
         }
       }
     }

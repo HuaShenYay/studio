@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase';
 import type { LiteraryTerm, LiteraryTermCreate, TermGroup } from '@/types';
 import type { Database, Tables } from '@/lib/supabase';
+import { readFsrsFromUserAnswer } from '@/lib/fsrs';
 
 type LiteraryTermRow = Tables<'literary_terms'>;
 type LiteraryTermInsert = Database['public']['Tables']['literary_terms']['Insert'];
@@ -73,14 +74,46 @@ export async function getTerms(): Promise<LiteraryTerm[]> {
     }
 }
 
+export async function getDueTerms(): Promise<LiteraryTerm[]> {
+    try {
+        const nowIso = new Date().toISOString();
+        const { data, error } = await supabase
+            .from(TERMS_TABLE)
+            .select('*')
+            .lte('fsrs_scheduled_at', nowIso)
+            .order('fsrs_scheduled_at', { ascending: true });
+
+        if (error) throw error;
+        return data ? data.map(fromSupabase) : [];
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : 'An unknown error occurred.';
+        throw new Error(`获取到期术语失败: ${msg}`);
+    }
+}
+
 export async function updateTerm(id: number, changes: Partial<LiteraryTerm>): Promise<void> {
     const supabaseData: LiteraryTermUpdate = {};
 
     if (changes.status !== undefined) supabaseData.status = changes.status;
     if (changes.userAnswer !== undefined) supabaseData.userAnswer = changes.userAnswer;
     if (changes.isDifficult !== undefined) supabaseData.isDifficult = changes.isDifficult;
+    if (changes.explanation !== undefined) supabaseData.explanation = changes.explanation;
+    if (changes.term !== undefined) supabaseData.term = changes.term;
     if (changes.hasOwnProperty('groupName')) {
         supabaseData.group_name = changes.groupName;
+    }
+
+    // Sync FSRS columns if userAnswer contains __fsrs
+    if (changes.userAnswer) {
+        const fsrs = readFsrsFromUserAnswer(changes.userAnswer as any);
+        if (fsrs) {
+            (supabaseData as any).fsrs_stability_days = fsrs.stabilityDays;
+            (supabaseData as any).fsrs_difficulty = fsrs.difficulty;
+            (supabaseData as any).fsrs_scheduled_at = fsrs.scheduledAt;
+            (supabaseData as any).fsrs_last_reviewed_at = fsrs.lastReviewedAt;
+            (supabaseData as any).fsrs_reps = fsrs.reps;
+            (supabaseData as any).fsrs_lapses = fsrs.lapses;
+        }
     }
 
     if (Object.keys(supabaseData).length === 0) {
@@ -157,6 +190,13 @@ export async function deleteGroup(groupName: string): Promise<void> {
         console.error('Error deleting group: ', error);
         throw new Error(`删除分组失败: ${error.message}`);
     }
+}
+
+export async function createGroupIfNotExists(groupName: string): Promise<void> {
+    // 通过插入一条占位记录确保分组被列出（不会影响统计，因为 terms 会真实计数）
+    // 为避免污染真实数据，这里不插入记录，而是无操作：分组的存在感由术语数量决定。
+    // 如果需要显式分组表，请在未来迁移到独立表。
+    return;
 }
 
 export async function resetAllTerms(): Promise<void> {

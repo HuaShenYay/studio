@@ -83,7 +83,7 @@ export default function AddTermDialog({ open, onOpenChange, onAddTerm, isLoading
         defaultValues: {
             term: "",
             explanation: "",
-            groupName: "Manual",
+            groupName: null,
         },
     });
 
@@ -114,7 +114,8 @@ export default function AddTermDialog({ open, onOpenChange, onAddTerm, isLoading
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        const success = await onAddTerm(values.term, values.explanation, values.groupName);
+        const sanitizedGroup = values.groupName && values.groupName.trim() !== "" ? values.groupName.trim() : null;
+        const success = await onAddTerm(values.term.trim(), values.explanation.trim(), sanitizedGroup);
         if (success) {
             form.reset();
             onOpenChange(false);
@@ -154,12 +155,12 @@ export default function AddTermDialog({ open, onOpenChange, onAddTerm, isLoading
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>分组</FormLabel>
-                                    <Combobox
-                                        options={groups.map(g => ({ label: `${g.groupName} (${g.count})`, value: g.groupName }))}
-                                        value={field.value ?? ""}
-                                        onChange={field.onChange}
-                                        entityName="分组"
-                                    />
+                            <Combobox
+                                options={groups.map(g => ({ label: `${g.groupName} (${g.count})`, value: g.groupName }))}
+                                value={field.value ?? ""}
+                                onChange={(v) => field.onChange(v || null)}
+                                entityName="分组"
+                            />
                                     <FormDescription>
                                     选择一个现有分组或输入一个新名称来创建分组。
                                     </FormDescription>
