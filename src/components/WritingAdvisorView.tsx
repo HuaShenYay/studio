@@ -26,8 +26,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import InteractiveCritique from "./InteractiveCritique";
-// 独立模块：每日作品选/评论建议/论述题建议 不在此组件内展示
-
 
 const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义", "结构主义", "新批评", "精神分析"] as const;
 
@@ -46,7 +44,6 @@ export default function WritingAdvisorView() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<CritiqueWritingOutput | null>(null);
     const [originalText, setOriginalText] = useState("");
-    
     const { toast } = useToast();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -79,21 +76,6 @@ export default function WritingAdvisorView() {
             setIsLoading(false);
         }
     }
-    
-    const evaluationModules = result ? [
-        { title: '主题与立意', data: result.evaluation.themeAndIntention, icon: BotMessageSquare },
-        { title: '结构与逻辑', data: result.evaluation.structureAndLogic, icon: ChevronsRight },
-        { title: '语言与表达', data: result.evaluation.languageAndExpression, icon: BookCheck },
-        { title: '人物与形象', data: result.evaluation.charactersAndImagery, icon: Drama },
-        { title: '情节与节奏', data: result.evaluation.plotAndPacing, icon: BrainCircuit },
-        { title: '创新性与独特性', data: result.evaluation.innovationAndUniqueness, icon: Rocket },
-    ] : [];
-
-    const getScoreColorClass = (score: number) => {
-        if (score < 40) return 'progress-bar-red';
-        if (score < 70) return 'progress-bar-yellow';
-        return 'progress-bar-green';
-    };
 
     return (
         <div>
@@ -197,7 +179,14 @@ export default function WritingAdvisorView() {
                              <CardDescription>AI 已从六个维度对您的作品进行了量化分析和评价。</CardDescription>
                         </Header>
                         <CardContent className="space-y-6 pt-2">
-                             {evaluationModules.map((module) => (
+                             {[
+                                { title: '主题与立意', data: result.evaluation.themeAndIntention, icon: BotMessageSquare },
+                                { title: '结构与逻辑', data: result.evaluation.structureAndLogic, icon: ChevronsRight },
+                                { title: '语言与表达', data: result.evaluation.languageAndExpression, icon: BookCheck },
+                                { title: '人物与形象', data: result.evaluation.charactersAndImagery, icon: Drama },
+                                { title: '情节与节奏', data: result.evaluation.plotAndPacing, icon: BrainCircuit },
+                                { title: '创新性与独特性', data: result.evaluation.innovationAndUniqueness, icon: Rocket },
+                             ].map((module) => (
                                 <div key={module.title} className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-2 py-4 border-b last:border-b-0">
                                     <div className="md:col-span-1">
                                         <h4 className="font-semibold text-lg flex items-center gap-2 mb-2">
@@ -208,7 +197,11 @@ export default function WritingAdvisorView() {
                                             <Progress 
                                                 value={module.data.score} 
                                                 className="h-3"
-                                                indicatorClassName={getScoreColorClass(module.data.score)} 
+                                                indicatorClassName={cn({
+                                                    'progress-bar-red': module.data.score < 40,
+                                                    'progress-bar-yellow': module.data.score >= 40 && module.data.score < 70,
+                                                    'progress-bar-green': module.data.score >= 70,
+                                                })}
                                             />
                                             <span className="font-bold text-lg w-12 text-right">{module.data.score}</span>
                                         </div>
