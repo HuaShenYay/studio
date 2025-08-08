@@ -8,7 +8,7 @@ import { ColorSchemeLoader } from '@/components/ColorSchemeLoader';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: '雕文入道',
+  title: '大记怒文',
   description: '您的个人文学术语备考助手',
 };
 

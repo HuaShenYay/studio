@@ -120,7 +120,7 @@ export default function AboutView() {
             <section className="text-center py-24 md:py-32 bg-card/50">
                 <div className="container mx-auto">
                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-primary">
-                        雕文入道
+                        大记怒文
                     </h1>
                      <p className="mt-6 text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto h-8">
                        <TypingEffect text="您的个人文学术语备考助手" />

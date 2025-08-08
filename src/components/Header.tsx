@@ -30,7 +30,7 @@ export default function Header({ currentView, setCurrentView }: HeaderProps) {
             <div className="container flex h-16 max-w-screen-2xl items-center">
                 <div className="mr-4 flex items-center">
                     <BookOpen className="h-6 w-6 mr-3 text-primary" />
-                    <span className="font-bold text-lg text-primary">雕文入道</span>
+                    <span className="font-bold text-lg text-primary">大记怒文</span>
                 </div>
                 <div className="flex flex-1 items-center justify-end space-x-2">
                     <TooltipProvider>
