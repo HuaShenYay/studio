@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Sparkles, ListChecks } from 'lucide-react';
@@ -21,7 +22,8 @@ import AboutView from '@/components/AboutView';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
-const literaryStyles = ["结构主义", "新批评", "精神分析", "读者反应批评", "女性主义批评", "后殖民主义批评", "马克思主义批评", "生态批评"] as const;
+// This list MUST match the one in `generate-critique-advice.ts`
+const literaryStyles: LiteraryStyle[] = ["结构主义", "新批评", "精神分析", "读者反应批评", "女性主义批评", "后殖民主义批评", "马克思主义批评", "生态批评"];
 
 export default function Home() {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
@@ -262,20 +264,26 @@ export default function Home() {
                                 生成建议
                             </Button>
                             {advice && (
-                                <div className="space-y-4 text-muted-foreground">
+                                <div className="space-y-4 pt-6 text-muted-foreground">
                                     <div>
-                                        <h4 className="font-semibold mb-2">评论大纲</h4>
-                                        <ul className="list-disc pl-6">{advice.outline.map((o,i)=>(<li key={i}>{o}</li>))}</ul>
+                                        <h4 className="text-lg font-semibold mb-2 text-foreground">评论大纲</h4>
+                                        <ul className="list-disc pl-6 space-y-1">{advice.outline.map((o,i)=>(<li key={i}>{o}</li>))}</ul>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold mb-2">论点-证据-分析 示例</h4>
-                                        <ul className="list-disc pl-6 space-y-2">
-                                            {advice.arguments.map((a,i)=> (<li key={i}><p><b>论点：</b>{a.point}</p><p><b>证据：</b>{a.evidence}</p><p><b>分析：</b>{a.analysis}</p></li>))}
-                                        </ul>
+                                        <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">论点-证据-分析 示例</h4>
+                                        <div className="space-y-4">
+                                            {advice.arguments.map((a,i)=> (
+                                                <div key={i} className="border-l-4 border-primary/20 pl-4">
+                                                    <p><b>论点：</b>{a.point}</p>
+                                                    <p><b>证据：</b>{a.evidence}</p>
+                                                    <p><b>分析：</b>{a.analysis}</p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold mb-2">常见误区</h4>
-                                        <ul className="list-disc pl-6">{advice.pitfalls.map((p,i)=>(<li key={i}>{p}</li>))}</ul>
+                                        <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">常见误区与建议</h4>
+                                        <ul className="list-disc pl-6 space-y-1">{advice.pitfalls.map((p,i)=>(<li key={i}>{p}</li>))}</ul>
                                     </div>
                                 </div>
                             )}
@@ -296,23 +304,29 @@ export default function Home() {
                                 生成建议
                             </Button>
                             {essay && (
-                                <div className="space-y-4 text-muted-foreground">
+                                <div className="space-y-4 pt-6 text-muted-foreground">
                                     <div>
-                                        <h4 className="font-semibold mb-2">中心论点</h4>
-                                        <p>{essay.thesis}</p>
+                                        <h4 className="text-lg font-semibold mb-2 text-foreground">中心论点</h4>
+                                        <p className="border-l-4 border-primary/20 pl-4 py-1">{essay.thesis}</p>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold mb-2">段落大纲</h4>
-                                        <ul className="list-disc pl-6">{essay.outline.map((o,i)=>(<li key={i}>{o}</li>))}</ul>
+                                        <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">段落大纲</h4>
+                                        <ul className="list-decimal pl-6 space-y-1">
+                                            {essay.outline.map((o,i)=>(<li key={i}>{o}</li>))}
+                                        </ul>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold mb-2">段落写作提示</h4>
-                                        <ul className="list-disc pl-6">{essay.paragraphHints.map((h,i)=>(<li key={i}>{h}</li>))}</ul>
+                                        <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">段落写作提示</h4>
+                                        <ul className="list-decimal pl-6 space-y-1">
+                                            {essay.paragraphHints.map((h,i)=>(<li key={i}>{h}</li>))}
+                                        </ul>
                                     </div>
                                     {essay.references.length>0 && (
                                         <div>
-                                            <h4 className="font-semibold mb-2">可引用参考</h4>
-                                            <ul className="list-disc pl-6">{essay.references.map((r,i)=>(<li key={i}>{r}</li>))}</ul>
+                                            <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">可引用参考</h4>
+                                            <ul className="list-disc pl-6 space-y-1">
+                                                {essay.references.map((r,i)=>(<li key={i}>{r}</li>))}
+                                            </ul>
                                         </div>
                                     )}
                                 </div>
@@ -331,3 +345,5 @@ export default function Home() {
         </AppLayout>
     );
 }
+
+    
