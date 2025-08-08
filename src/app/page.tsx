@@ -20,19 +20,7 @@ import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, re
 
 type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
 
-function AuthWrapper({ children }: { children: React.ReactNode }) {
-    return <>{children}</>;
-}
-
 export default function Home() {
-    return (
-        <AuthWrapper>
-            <MainContent handleLogout={() => { }} />
-        </AuthWrapper>
-    );
-}
-
-function MainContent({ handleLogout }: { handleLogout: () => void }) {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -343,7 +331,7 @@ function MainContent({ handleLogout }: { handleLogout: () => void }) {
     }
 
     return (
-        <AppLayout currentView={currentView} setCurrentView={setCurrentView} onLogout={handleLogout}>
+        <AppLayout currentView={currentView} setCurrentView={setCurrentView}>
             {renderContent()}
         </AppLayout>
     );
