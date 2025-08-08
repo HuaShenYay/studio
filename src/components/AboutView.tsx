@@ -144,6 +144,13 @@ export default function AboutView() {
                     </p>
                 </div>
             </section>
+            
+            <footer className="text-center py-12">
+                <div className="container mx-auto">
+                    <p className="text-muted-foreground">Meso/HSY制作</p>
+                    <p className="text-muted-foreground">B站：癔症Hysteria</p>
+                </div>
+            </footer>
         </div>
     );
 }
