@@ -15,13 +15,13 @@ interface HeaderProps {
 }
 
 const navItems: { view: View, label: string, icon: React.ElementType }[] = [
-    { view: 'about', label: '软件介绍', icon: Info },
+    { view: 'dueReview', label: '今日到期', icon: CalendarClock },
     { view: 'practice', label: '学习模式', icon: NotebookTabs },
     { view: 'advisor', label: '写作指导', icon: Feather },
     { view: 'critiqueAdvice', label: '评论建议', icon: ScrollText },
     { view: 'argumentEssay', label: '论述题建议', icon: BookMarked },
     { view: 'dailyWorks', label: '每日作品', icon: BookOpen },
-    { view: 'dueReview', label: '今日到期', icon: CalendarClock },
+    { view: 'about', label: '软件介绍', icon: Info },
 ];
 
 export default function Header({ currentView, setCurrentView }: HeaderProps) {
