@@ -28,7 +28,7 @@ import InteractiveCritique from "./InteractiveCritique";
 // 独立模块：每日作品选/评论建议/论述题建议 不在此组件内展示
 
 
-const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
+const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义", "结构主义", "新批评", "精神分析"] as const;
 
 const formSchema = z.object({
     textToCritique: z.string().min(50, {
@@ -37,7 +37,7 @@ const formSchema = z.object({
         message: "内容过长，请保持在 5000 字符以内。"
     }),
     style: z.enum(literaryStyles, {
-        errorMap: () => ({ message: "请选择一个文学风格。" }),
+        errorMap: () => ({ message: "请选择一个文学风格或批评方法。" }),
     }),
 });
 
@@ -52,7 +52,7 @@ export default function WritingAdvisorView() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             textToCritique: "",
-            style: "海明威极简主义",
+            style: "现实主义",
         },
     });
 
@@ -109,7 +109,7 @@ export default function WritingAdvisorView() {
             <Card>
                 <CardHeader>
                     <CardTitle>输入您的作品</CardTitle>
-                    <CardDescription>将您的文字粘贴到下方，然后选择一种分析风格。</CardDescription>
+                    <CardDescription>将您的文字粘贴到下方，然后选择一种分析视角。</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -136,11 +136,11 @@ export default function WritingAdvisorView() {
                                     name="style"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>选择分析风格</FormLabel>
+                                            <FormLabel>选择分析视角</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="请选择一个风格" />
+                                                        <SelectValue placeholder="请选择一个视角" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
@@ -150,7 +150,7 @@ export default function WritingAdvisorView() {
                                                 </SelectContent>
                                             </Select>
                                             <FormDescription>
-                                            AI 将依据您选择的风格对您的作品进行评价。
+                                            AI 将依据您选择的批评理论对您的作品进行评价。
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>

@@ -10,14 +10,14 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
+const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义", "结构主义", "新批评", "精神分析"] as const;
 const LiteraryStyleSchema = z.enum(literaryStyles);
 export type LiteraryStyle = z.infer<typeof LiteraryStyleSchema>;
 
 
 const CritiqueWritingInputSchema = z.object({
   textToCritique: z.string().describe('用户需要评价的写作内容。'),
-  style: LiteraryStyleSchema.describe('用户选择的文学风格。'),
+  style: LiteraryStyleSchema.describe('用户选择的文学风格或批评方法。'),
 });
 export type CritiqueWritingInput = z.infer<typeof CritiqueWritingInputSchema>;
 
@@ -55,17 +55,16 @@ const prompt = ai.definePrompt({
   name: 'critiqueWritingPrompt',
   input: {schema: CritiqueWritingInputSchema},
   output: {schema: CritiqueWritingOutputSchema},
-  prompt: `你是一位专业的文学编辑和写作导师。请根据用户选择的文学风格，对以下写作内容进行深入、专业、且富有建设性的评价和建议。
+  prompt: `你是一位专业的文学编辑和批评家，精通各种文学理论和批评方法。请根据用户选择的特定批评视角，对以下写作内容进行深入、专业、且富有建设性的评价和建议。
 
 你的评价必须分为两个部分：
 
 第一部分：分模块综合评价 (evaluation)
 你必须严格按照以下六个维度进行评价。对于每个维度，你都需要提供两项内容：
 1.  **score**: 一个从 0 到 100 的整数，用于量化评价该维度的表现。分数越高代表表现越好（例如：0-40 分表示差，41-70 分表示中等，71-100 分表示优秀）。
-2.  **comment**: 详细的文字评价。
+2.  **comment**: 详细的文字评价。**此评价必须严格运用你被指定的批评方法论**。例如，如果选择“精神分析”，你的评语中应包含关于潜意识、象征、原型等概念的分析。如果选择“结构主义”，应关注文本的二元对立、叙事结构等。
 
 如果某个维度不适用于所提供的文本类型（例如，一篇议论文没有“情节”），请在该维度的 \`comment\` 中明确说明不适用的原因，并将 \`score\` 设为 0。
-参考提交上来的风格中，这个风格的大师们都是怎么写的，例如选择”浪漫主义“时，可以参考雪莱的作品，（并将自己想象成雪莱，无意识地），然后写出自己的评价。
 
 六个评价维度是：
 1.  **主题与立意**：核心思想是否明确、深刻，有无独特视角或价值。
@@ -79,11 +78,11 @@ const prompt = ai.definePrompt({
 这是一个**数组**，每个元素都是一个包含三个字段的对象：\`originalSegment\`、\`suggestedChange\` 和 \`comment\`。
 *   \`originalSegment\`: **必须**是从用户原文中**精确、无修改地**提取的文本片段。
 *   \`suggestedChange\`: 对 \`originalSegment\` 提出的修改方案。
-*   \`comment\`: 解释为什么要做这个修改。
+*   \`comment\`: 解释为什么要做这个修改，**理由应与你采用的批评视角相关**。
 *   请找出多个值得修改的地方，并为每个地方生成一个建议对象。
 
 ---
-**文学风格**: {{style}}
+**批评视角**: {{style}}
 **待评价内容**:
 {{textToCritique}}
 ---
