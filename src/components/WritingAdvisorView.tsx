@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -92,7 +93,7 @@ export default function WritingAdvisorView() {
         if (score < 40) return 'progress-bar-red';
         if (score < 70) return 'progress-bar-yellow';
         return 'progress-bar-green';
-    }
+    };
 
     return (
         <div>
@@ -194,7 +195,7 @@ export default function WritingAdvisorView() {
                         <CardHeader>
                              <CardTitle className="text-2xl">综合评价报告</CardTitle>
                              <CardDescription>AI 已从六个维度对您的作品进行了量化分析和评价。</CardDescription>
-                        </CardHeader>
+                        </Header>
                         <CardContent className="space-y-6 pt-2">
                              {evaluationModules.map((module) => (
                                 <div key={module.title} className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-2 py-4 border-b last:border-b-0">

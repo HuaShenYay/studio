@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { generateCritiqueAdvice } from '@/ai/flows/generate-critique-advice';
-import type { CritiqueAdviceOutput } from '@/ai/flows/generate-critique-advice';
+import type { CritiqueAdviceOutput, LiteraryStyle } from '@/ai/flows/generate-critique-advice';
 import { generateArgumentEssay } from '@/ai/flows/generate-argument-essay';
 import type { ArgumentEssayOutput } from '@/ai/flows/generate-argument-essay';
 import DueReviewView from '@/components/DueReviewView';
@@ -18,8 +18,10 @@ import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
 import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, renameGroup, deleteGroup as deleteGroupService } from '@/services/terms-service';
 import AboutView from '@/components/AboutView';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
+const literaryStyles = ["结构主义", "新批评", "精神分析", "读者反应批评", "女性主义批评", "后殖民主义批评", "马克思主义批评", "生态批评"] as const;
 
 export default function Home() {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
@@ -32,6 +34,7 @@ export default function Home() {
     const [essayLoading, setEssayLoading] = useState(false);
     const [adviceInput, setAdviceInput] = useState('请以“现代都市孤独体验”为主题给出评论写作建议');
     const [essayInput, setEssayInput] = useState('结合鲁迅小说中的“启蒙与反启蒙”主题进行论述');
+    const [adviceStyle, setAdviceStyle] = useState<LiteraryStyle>("结构主义");
     const { toast } = useToast();
     
     const fetchTerms = useCallback(async () => {
@@ -240,11 +243,21 @@ export default function Home() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5"/>文学评论写作建议</CardTitle>
-                            <CardDescription>输入主题或作品名称，生成评论大纲与论证思路。</CardDescription>
+                            <CardDescription>输入主题或作品，选择一种批评方法，生成评论大纲与论证思路。</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <Textarea value={adviceInput} onChange={e=>setAdviceInput(e.target.value)} className="min-h-[100px]"/>
-                            <Button onClick={async()=>{setAdviceLoading(true);setAdvice(null);try{const res=await generateCritiqueAdvice({topic:adviceInput,era:'中国现当代',focus:'主题、结构、语言、意象、叙事策略'});setAdvice(res);}catch(e:any){toast({variant:'destructive',title:'生成失败',description:e?.message||'请稍后再试'})}finally{setAdviceLoading(false)}}} disabled={adviceLoading}>
+                             <Select onValueChange={(v) => setAdviceStyle(v as LiteraryStyle)} defaultValue={adviceStyle}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="请选择一个批评方法" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {literaryStyles.map(style => (
+                                        <SelectItem key={style} value={style}>{style}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={async()=>{setAdviceLoading(true);setAdvice(null);try{const res=await generateCritiqueAdvice({topic:adviceInput,era:'中国现当代',style: adviceStyle});setAdvice(res);}catch(e:any){toast({variant:'destructive',title:'生成失败',description:e?.message||'请稍后再试'})}finally{setAdviceLoading(false)}}} disabled={adviceLoading}>
                                 {adviceLoading? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
                                 生成建议
                             </Button>
