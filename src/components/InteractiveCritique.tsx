@@ -1,7 +1,6 @@
-
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CritiqueWritingOutput } from '@/ai/flows/critique-writing';
 
@@ -12,50 +11,92 @@ interface InteractiveCritiqueProps {
   suggestions: Suggestion[];
 }
 
-// Simple escape function for regex
-const escapeRegExp = (string: string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+type HighlightRange = {
+  start: number;
+  end: number;
+  suggestion: Suggestion;
 };
 
-export default function InteractiveCritique({ originalText, suggestions }: InteractiveCritiqueProps) {
-    if (!suggestions || suggestions.length === 0) {
-        return <p className="text-base whitespace-pre-wrap leading-relaxed">{originalText}</p>;
+function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number) {
+  return !(aEnd <= bStart || aStart >= bEnd);
+}
+
+// For each suggestion, find the first occurrence of its originalSegment
+// that does not overlap with already assigned ranges. This preserves
+// the intent even when segments repeat or partially overlap.
+function computeHighlightRanges(originalText: string, suggestions: Suggestion[]): HighlightRange[] {
+  const ranges: HighlightRange[] = [];
+  if (!originalText || !suggestions?.length) return ranges;
+
+  for (const suggestion of suggestions) {
+    const segment = suggestion.originalSegment;
+    if (!segment) continue;
+
+    let searchFrom = 0;
+    while (searchFrom < originalText.length) {
+      const idx = originalText.indexOf(segment, searchFrom);
+      if (idx === -1) break;
+      const start = idx;
+      const end = idx + segment.length;
+      const hasOverlap = ranges.some(r => rangesOverlap(start, end, r.start, r.end));
+      if (!hasOverlap) {
+        ranges.push({ start, end, suggestion });
+        break; // assign this suggestion once
+      }
+      searchFrom = idx + 1;
     }
+  }
 
-    // Create a regex that finds any of the suggestion segments
-    // This is a bit naive as it doesn't handle overlapping segments well, but it's a start.
-    const allSegments = suggestions.map(s => escapeRegExp(s.originalSegment)).join('|');
-    const regex = new RegExp(`(${allSegments})`, 'g');
+  ranges.sort((a, b) => a.start - b.start);
+  return ranges;
+}
 
-    const parts = originalText.split(regex).filter(Boolean);
+export default function InteractiveCritique({ originalText, suggestions }: InteractiveCritiqueProps) {
+  const ranges = useMemo(() => computeHighlightRanges(originalText, suggestions), [originalText, suggestions]);
 
-    return (
-        <TooltipProvider>
-            <div className="text-base whitespace-pre-wrap leading-relaxed">
-                {parts.map((part, index) => {
-                    const suggestion = suggestions.find(s => s.originalSegment === part);
-                    if (suggestion) {
-                        return (
-                            <Tooltip key={index} delayDuration={100}>
-                                <TooltipTrigger asChild>
-                                    <span className="bg-yellow-200 dark:bg-yellow-800/50 px-1 rounded-sm cursor-pointer">
-                                        {part}
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-sm w-full" side="top">
-                                    <div className="p-2">
-                                        <p className="text-xs text-muted-foreground mb-2">修改建议:</p>
-                                        <p className="font-semibold">{suggestion.suggestedChange}</p>
-                                        <p className="text-xs text-muted-foreground mt-3 mb-1">理由:</p>
-                                        <p className="text-sm">{suggestion.comment}</p>
-                                    </div>
-                                </TooltipContent>
-                            </Tooltip>
-                        );
-                    }
-                    return <span key={index}>{part}</span>;
-                })}
-            </div>
-        </TooltipProvider>
-    );
+  if (!ranges.length) {
+    return <p className="text-base whitespace-pre-wrap leading-relaxed">{originalText}</p>;
+  }
+
+  const parts: Array<{ text: string; suggestion?: Suggestion }> = [];
+  let cursor = 0;
+  for (const r of ranges) {
+    if (cursor < r.start) {
+      parts.push({ text: originalText.slice(cursor, r.start) });
+    }
+    parts.push({ text: originalText.slice(r.start, r.end), suggestion: r.suggestion });
+    cursor = r.end;
+  }
+  if (cursor < originalText.length) {
+    parts.push({ text: originalText.slice(cursor) });
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="text-base whitespace-pre-wrap leading-relaxed">
+        {parts.map((part, index) => {
+          if (part.suggestion) {
+            return (
+              <Tooltip key={index} delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <span className="bg-yellow-200 dark:bg-yellow-800/50 px-1 rounded-sm cursor-pointer">
+                    {part.text}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm w-full" side="top">
+                  <div className="p-2">
+                    <p className="text-xs text-muted-foreground mb-2">修改建议:</p>
+                    <p className="font-semibold">{part.suggestion.suggestedChange}</p>
+                    <p className="text-xs text-muted-foreground mt-3 mb-1">理由:</p>
+                    <p className="text-sm">{part.suggestion.comment}</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+          return <span key={index}>{part.text}</span>;
+        })}
+      </div>
+    </TooltipProvider>
+  );
 }
