@@ -1,57 +1,102 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Feather, Loader2, Sparkles, BookText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import InteractiveCritique from '@/components/InteractiveCritique';
-import { critiqueWriting } from '@/ai/flows/critique-writing';
-import type { CritiqueWritingOutput, LiteraryStyle } from '@/ai/flows/critique-writing';
-import { useToast } from '@/hooks/use-toast';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Feather, Loader2, Wand2, BotMessageSquare, BookCheck, ChevronsRight, Drama, BrainCircuit, Rocket } from "lucide-react";
+import { useState } from "react";
+import { critiqueWriting } from "@/ai/flows/critique-writing";
+import type { CritiqueWritingOutput, LiteraryStyle } from "@/ai/flows/critique-writing";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-// This list must match the one in the Zod schema in the AI flow.
-const literaryStyles: LiteraryStyle[] = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义", "结构主义", "新批评", "精神分析"];
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import InteractiveCritique from "./InteractiveCritique";
+// 独立模块：每日作品选/评论建议/论述题建议 不在此组件内展示
+
+
+const literaryStyles = ["海明威极简主义", "现实主义", "浪漫主义", "象征主义", "意识流", "超现实主义", "未来主义"] as const;
+
+const formSchema = z.object({
+    textToCritique: z.string().min(50, {
+        message: "为了得到有意义的建议，请输入至少 50 个字符。",
+    }).max(5000, {
+        message: "内容过长，请保持在 5000 字符以内。"
+    }),
+    style: z.enum(literaryStyles, {
+        errorMap: () => ({ message: "请选择一个文学风格。" }),
+    }),
+});
 
 export default function WritingAdvisorView() {
-    const [text, setText] = useState('他独自坐在窗边，雨水敲打着玻璃，像无数个微小的、无法破译的密码。街灯的光晕在湿漉漉的柏油路上拉得很长，偶尔有车驶过，灯光会短暂地照亮他苍白的脸。他没有开灯，任由自己沉浸在黑暗与光影的交界处。桌上的咖啡已经冷了，就像他此刻的心情。他拿起笔，想写点什么，却又不知从何说起。那些未曾说出口的话，未曾实现的梦，此刻都像这窗外的雨一样，密集而又冰冷。');
-    const [style, setStyle] = useState<LiteraryStyle>('现实主义');
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<CritiqueWritingOutput | null>(null);
+    const [originalText, setOriginalText] = useState("");
+    
     const { toast } = useToast();
 
-    const handleCritique = async () => {
-        setLoading(true);
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            textToCritique: "",
+            style: "海明威极简主义",
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        setIsLoading(true);
         setResult(null);
+        setOriginalText(values.textToCritique);
         try {
-            const response = await critiqueWriting({
-                textToCritique: text,
-                style: style,
+            const critiqueResult = await critiqueWriting({
+                textToCritique: values.textToCritique,
+                style: values.style as LiteraryStyle,
             });
-            setResult(response);
-        } catch (e: any) {
+            setResult(critiqueResult);
+        } catch (error) {
+            console.error("Failed to get writing critique:", error);
+            const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
             toast({
-                variant: 'destructive',
-                title: '生成评价失败',
-                description: e?.message || '请稍后再试，或检查输入内容。',
+                variant: "destructive",
+                title: "获取建议时出错",
+                description: errorMessage,
             });
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
-    };
+    }
     
-    // Helper function to determine progress bar color based on score
+    const evaluationModules = result ? [
+        { title: '主题与立意', data: result.evaluation.themeAndIntention, icon: BotMessageSquare },
+        { title: '结构与逻辑', data: result.evaluation.structureAndLogic, icon: ChevronsRight },
+        { title: '语言与表达', data: result.evaluation.languageAndExpression, icon: BookCheck },
+        { title: '人物与形象', data: result.evaluation.charactersAndImagery, icon: Drama },
+        { title: '情节与节奏', data: result.evaluation.plotAndPacing, icon: BrainCircuit },
+        { title: '创新性与独特性', data: result.evaluation.innovationAndUniqueness, icon: Rocket },
+    ] : [];
+
     const getScoreColorClass = (score: number) => {
         if (score < 40) return 'progress-bar-red';
         if (score < 70) return 'progress-bar-yellow';
         return 'progress-bar-green';
-    };
+    }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-4">
+        <div>
+            <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 rounded-full bg-primary/10 text-primary">
                     <Feather className="h-8 w-8" />
                 </div>
@@ -63,64 +108,119 @@ export default function WritingAdvisorView() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BookText className="h-5 w-5" />文本分析与评价</CardTitle>
-                    <CardDescription>输入您的作品，选择一种批评视角，AI 将为您提供多维度的评价和具体的修改建议。</CardDescription>
+                    <CardTitle>输入您的作品</CardTitle>
+                    <CardDescription>将您的文字粘贴到下方，然后选择一种分析风格。</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <Textarea 
-                            value={text} 
-                            onChange={(e) => setText(e.target.value)} 
-                            className="md:col-span-3 min-h-[200px]"
-                            placeholder="请在此处粘贴您的作品..."
-                        />
-                        <div className="space-y-4 md:col-span-1">
-                            <Select onValueChange={(v) => setStyle(v as LiteraryStyle)} defaultValue={style}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="请选择一个批评视角" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {literaryStyles.map(s => (
-                                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button onClick={handleCritique} disabled={loading || !text} className="w-full">
-                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                {loading ? '正在分析...' : '生成评价'}
-                            </Button>
-                        </div>
-                    </div>
-                    {result && (
-                        <div className="space-y-6 pt-6">
-                            <div>
-                                <h3 className="text-xl font-semibold mb-4 text-foreground">综合评价</h3>
-                                <div className="space-y-4">
-                                    {Object.entries(result.evaluation).map(([key, value]) => (
-                                        <div key={key}>
-                                            <div className="flex justify-between items-baseline mb-1">
-                                                <span className="text-sm font-medium text-muted-foreground capitalize">
-                                                    {key.replace(/([A-Z])/g, ' $1').replace('And', '&')}
-                                                </span>
-                                                <span className="text-lg font-bold text-primary">{value.score}</span>
-                                            </div>
-                                            <Progress value={value.score} indicatorClassName={getScoreColorClass(value.score)} />
-                                            <p className="text-sm text-muted-foreground mt-2">{value.comment}</p>
-                                        </div>
-                                    ))}
-                                </div>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <FormField
+                                control={form.control}
+                                name="textToCritique"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="在此处粘贴您的文字..."
+                                                className="resize-y min-h-[200px] text-base"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                <FormField
+                                    control={form.control}
+                                    name="style"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>选择分析风格</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="请选择一个风格" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {literaryStyles.map(style => (
+                                                        <SelectItem key={style} value={style}>{style}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormDescription>
+                                            AI 将依据您选择的风格对您的作品进行评价。
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                
+                                <Button type="submit" disabled={isLoading} size="lg" className="w-full">
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                    获取 AI 建议
+                                </Button>
                             </div>
-                            
-                            <div>
-                                <h3 className="text-xl font-semibold mb-4 text-foreground">交互式修改建议</h3>
-                                <Card className="p-4 bg-muted/30">
-                                  <InteractiveCritique originalText={text} suggestions={result.suggestions} />
-                                </Card>
-                            </div>
-                        </div>
-                    )}
+                        </form>
+                    </Form>
                 </CardContent>
             </Card>
+
+            {isLoading && (
+                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12 rounded-xl bg-card mt-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-lg">AI 正在阅读您的作品并撰写反馈...</p>
+                    <p className="text-sm">这可能需要一点时间，请稍候。</p>
+                </div>
+            )}
+
+            {result && !isLoading && (
+                <div className="mt-8 space-y-8">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl">具体修改建议</CardTitle>
+                            <CardDescription>将鼠标悬浮于高亮文本上，即可查看详细修改建议及理由。</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <InteractiveCritique
+                                originalText={originalText}
+                                suggestions={result.suggestions}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                             <CardTitle className="text-2xl">综合评价报告</CardTitle>
+                             <CardDescription>AI 已从六个维度对您的作品进行了量化分析和评价。</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-2">
+                             {evaluationModules.map((module) => (
+                                <div key={module.title} className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-2 py-4 border-b last:border-b-0">
+                                    <div className="md:col-span-1">
+                                        <h4 className="font-semibold text-lg flex items-center gap-2 mb-2">
+                                            <module.icon className="h-5 w-5 text-primary" />
+                                            {module.title}
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <Progress 
+                                                value={module.data.score} 
+                                                className="h-3"
+                                                indicatorClassName={getScoreColorClass(module.data.score)} 
+                                            />
+                                            <span className="font-bold text-lg w-12 text-right">{module.data.score}</span>
+                                        </div>
+                                    </div>
+                                    <div className="md:col-span-2 text-muted-foreground">
+                                        <p className="text-base whitespace-pre-wrap leading-relaxed">{module.data.comment}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
