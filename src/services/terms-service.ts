@@ -1,3 +1,4 @@
+
 'use server';
 
 import { supabase } from '@/lib/supabase';
@@ -99,6 +100,8 @@ export async function updateTerm(id: number, changes: Partial<LiteraryTerm>): Pr
     if (changes.isDifficult !== undefined) supabaseData.isDifficult = changes.isDifficult;
     if (changes.explanation !== undefined) supabaseData.explanation = changes.explanation;
     if (changes.term !== undefined) supabaseData.term = changes.term;
+    if (changes.exercise !== undefined) supabaseData.exercise = changes.exercise;
+    if (changes.answer !== undefined) supabaseData.answer = changes.answer;
     if (changes.hasOwnProperty('groupName')) {
         supabaseData.group_name = changes.groupName;
     }
@@ -210,3 +213,5 @@ export async function resetAllTerms(): Promise<void> {
         throw new Error(`重置所有术语失败: ${error.message}`);
     }
 }
+
+    

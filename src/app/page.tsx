@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { generateCritiqueAdvice } from '@/ai/flows/generate-critique-advice';
-import type { CritiqueAdviceOutput, LiteraryStyle } from '@/ai/flows/generate-critique-advice';
+import type { CritiqueAdviceOutput, LiteraryStyle as CritiqueLiteraryStyle } from '@/ai/flows/generate-critique-advice';
 import { generateArgumentEssay } from '@/ai/flows/generate-argument-essay';
 import type { ArgumentEssayOutput } from '@/ai/flows/generate-argument-essay';
 import DueReviewView from '@/components/DueReviewView';
@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
 // This list MUST match the one in `generate-critique-advice.ts`
-const literaryStyles: LiteraryStyle[] = ["结构主义", "新批评", "精神分析", "读者反应批评", "女性主义批评", "后殖民主义批评", "马克思主义批评", "生态批评"];
+const critiqueLiteraryStyles: CritiqueLiteraryStyle[] = ["结构主义", "新批评", "精神分析", "读者反应批评", "女性主义批评", "后殖民主义批评", "马克思主义批评", "生态批评"];
 
 export default function Home() {
     const [terms, setTerms] = useState<LiteraryTerm[]>([]);
@@ -36,7 +36,7 @@ export default function Home() {
     const [essayLoading, setEssayLoading] = useState(false);
     const [adviceInput, setAdviceInput] = useState('请以“现代都市孤独体验”为主题给出评论写作建议');
     const [essayInput, setEssayInput] = useState('结合鲁迅小说中的“启蒙与反启蒙”主题进行论述');
-    const [adviceStyle, setAdviceStyle] = useState<LiteraryStyle>("结构主义");
+    const [adviceStyle, setAdviceStyle] = useState<CritiqueLiteraryStyle>("结构主义");
     const { toast } = useToast();
     
     const fetchTerms = useCallback(async () => {
@@ -135,6 +135,10 @@ export default function Home() {
             if (JSON.stringify(updatedTerm.userAnswer) !== JSON.stringify(originalTerm.userAnswer)) changes.userAnswer = updatedTerm.userAnswer;
             if (updatedTerm.isDifficult !== originalTerm.isDifficult) changes.isDifficult = updatedTerm.isDifficult;
             if (updatedTerm.groupName !== originalTerm.groupName) changes.groupName = updatedTerm.groupName;
+            if (updatedTerm.term !== originalTerm.term) changes.term = updatedTerm.term;
+            if (updatedTerm.explanation !== originalTerm.explanation) changes.explanation = updatedTerm.explanation;
+            if (updatedTerm.exercise !== originalTerm.exercise) changes.exercise = updatedTerm.exercise;
+            if (JSON.stringify(updatedTerm.answer) !== JSON.stringify(originalTerm.answer)) changes.answer = updatedTerm.answer;
             
             if (Object.keys(changes).length > 0) {
               await updateTerm(updatedTerm.id, changes);
@@ -249,12 +253,12 @@ export default function Home() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <Textarea value={adviceInput} onChange={e=>setAdviceInput(e.target.value)} className="min-h-[100px]"/>
-                             <Select onValueChange={(v) => setAdviceStyle(v as LiteraryStyle)} defaultValue={adviceStyle}>
+                             <Select onValueChange={(v) => setAdviceStyle(v as CritiqueLiteraryStyle)} defaultValue={adviceStyle}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="请选择一个批评方法" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {literaryStyles.map(style => (
+                                    {critiqueLiteraryStyles.map(style => (
                                         <SelectItem key={style} value={style}>{style}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -345,5 +349,7 @@ export default function Home() {
         </AppLayout>
     );
 }
+
+    
 
     

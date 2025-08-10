@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Star, CheckCircle2, MoreVertical, Trash2, Lightbulb, RefreshCcw, FolderCog, Pencil } from 'lucide-react';
@@ -313,3 +314,5 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
         </Card>
     );
 }
+
+    
