@@ -12,8 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { generateCritiqueAdvice } from '@/ai/flows/generate-critique-advice';
 import type { CritiqueAdviceOutput, LiteraryStyle as CritiqueLiteraryStyle } from '@/ai/flows/generate-critique-advice';
-import { generateArgumentEssay } from '@/ai/flows/generate-argument-essay';
-import type { ArgumentEssayOutput } from '@/ai/flows/generate-argument-essay';
 import DueReviewView from '@/components/DueReviewView';
 import { useToast } from "@/hooks/use-toast";
 import AppLayout from '@/components/AppLayout';
@@ -21,7 +19,7 @@ import { addTerm, getTerms, updateTerm, deleteTerm, getGroups, resetAllTerms, re
 import AboutView from '@/components/AboutView';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
+type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'dailyWorks' | 'dueReview' | 'about';
 // This list MUST match the one in `generate-critique-advice.ts`
 const critiqueLiteraryStyles: CritiqueLiteraryStyle[] = ["结构主义", "新批评", "精神分析", "读者反应批评", "女性主义批评", "后殖民主义批评", "马克思主义批评", "生态批评"];
 
@@ -31,11 +29,8 @@ export default function Home() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentView, setCurrentView] = useState<View>('about');
     const [advice, setAdvice] = useState<CritiqueAdviceOutput | null>(null);
-    const [essay, setEssay] = useState<ArgumentEssayOutput | null>(null);
     const [adviceLoading, setAdviceLoading] = useState(false);
-    const [essayLoading, setEssayLoading] = useState(false);
     const [adviceInput, setAdviceInput] = useState('请以“现代都市孤独体验”为主题给出评论写作建议');
-    const [essayInput, setEssayInput] = useState('结合鲁迅小说中的“启蒙与反启蒙”主题进行论述');
     const [adviceStyle, setAdviceStyle] = useState<CritiqueLiteraryStyle>("结构主义");
     const { toast } = useToast();
     
@@ -274,50 +269,6 @@ export default function Home() {
                                         <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">常见误区与建议</h4>
                                         <ul className="list-disc pl-6 space-y-1">{advice.pitfalls.map((p,i)=>(<li key={i}>{p}</li>))}</ul>
                                     </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                );
-            case 'argumentEssay':
-                return (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5"/>论述题写作建议</CardTitle>
-                            <CardDescription>输入题目或材料，生成中心论点与段落大纲。</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Textarea value={essayInput} onChange={e=>setEssayInput(e.target.value)} className="min-h-[100px]"/>
-                            <Button onClick={async()=>{setEssayLoading(true);setEssay(null);try{const res=await generateArgumentEssay({prompt:essayInput,era:'中国现当代',length:600});setEssay(res);}catch(e:any){toast({variant:'destructive',title:'生成失败',description:e?.message||'请稍后再试'})}finally{setEssayLoading(false)}}} disabled={essayLoading}>
-                                {essayLoading? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                生成建议
-                            </Button>
-                            {essay && (
-                                <div className="space-y-4 pt-6 text-muted-foreground">
-                                    <div>
-                                        <h4 className="text-lg font-semibold mb-2 text-foreground">中心论点</h4>
-                                        <p className="border-l-4 border-primary/20 pl-4 py-1">{essay.thesis}</p>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">段落大纲</h4>
-                                        <ul className="list-decimal pl-6 space-y-1">
-                                            {essay.outline.map((o,i)=>(<li key={i}>{o}</li>))}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">段落写作提示</h4>
-                                        <ul className="list-decimal pl-6 space-y-1">
-                                            {essay.paragraphHints.map((h,i)=>(<li key={i}>{h}</li>))}
-                                        </ul>
-                                    </div>
-                                    {essay.references.length>0 && (
-                                        <div>
-                                            <h4 className="text-lg font-semibold mb-2 mt-4 text-foreground">可引用参考</h4>
-                                            <ul className="list-disc pl-6 space-y-1">
-                                                {essay.references.map((r,i)=>(<li key={i}>{r}</li>))}
-                                            </ul>
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </CardContent>

@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
 
-type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'argumentEssay' | 'dailyWorks' | 'dueReview' | 'about';
+type View = 'practice' | 'advisor' | 'critiqueAdvice' | 'dailyWorks' | 'dueReview' | 'about';
 
 interface HeaderProps {
     currentView: View;
@@ -19,7 +19,6 @@ const navItems: { view: View, label: string, icon: React.ElementType }[] = [
     { view: 'practice', label: '学习模式', icon: NotebookTabs },
     { view: 'advisor', label: '写作指导', icon: Feather },
     { view: 'critiqueAdvice', label: '评论建议', icon: ScrollText },
-    { view: 'argumentEssay', label: '论述题建议', icon: BookMarked },
     { view: 'dailyWorks', label: '每日作品', icon: BookOpen },
     { view: 'about', label: '软件介绍', icon: Info },
 ];
