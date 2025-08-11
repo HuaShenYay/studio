@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { LiteraryTerm, TermGroup } from "@/types";

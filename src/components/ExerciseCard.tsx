@@ -6,7 +6,6 @@ import type { LiteraryTerm, PracticeStatus, TermGroup } from '@/types';
 import { isDue, reviewFsrs, readFsrsFromUserAnswer, writeFsrsToUserAnswer, type FsrsGrade } from '@/lib/fsrs';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import {
@@ -21,14 +20,7 @@ import {
   DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { Combobox } from '@/components/ui/combobox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import EditExerciseDialog from './EditExerciseDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +36,7 @@ import {
 
 type ExerciseCardProps = {
     termData: LiteraryTerm;
-    onUpdate: (term: LiteraryTerm) => void;
+    onUpdate: (term: LiteraryTerm, isRegenerating?: boolean) => void;
     onDelete: (id: number) => void;
     groups: TermGroup[];
     mode?: 'learn' | 'review';
@@ -55,12 +47,9 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
     const [userAnswers, setUserAnswers] = useState<Record<string, string>>(initialUserAnswer || {});
     const fsrsState = readFsrsFromUserAnswer(initialUserAnswer) || null;
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [editTerm, setEditTerm] = useState(termData.term);
-    const [editExplanation, setEditExplanation] = useState(termData.explanation);
     const [status, setStatus] = useState<PracticeStatus | Record<string, PracticeStatus>>(initialStatus);
 
     const blankCount = (exercise.match(/____/g) || []).length;
-    const isMultiBlank = blankCount > 1;
 
     useEffect(() => {
         setUserAnswers(termData.userAnswer || {});
@@ -112,16 +101,9 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
     const handleGroupChange = (newGroupName: string) => {
         onUpdate({ ...termData, groupName: newGroupName });
     };
-
-    const handleOpenEdit = () => {
-        setEditTerm(termData.term);
-        setEditExplanation(termData.explanation);
-        setIsEditOpen(true);
-    };
-
-    const handleSaveEdit = () => {
-        const next = { ...termData, term: editTerm.trim(), explanation: editExplanation.trim() };
-        onUpdate(next);
+    
+    const handleSaveEdit = (updatedTerm: LiteraryTerm) => {
+        onUpdate(updatedTerm, true);
         setIsEditOpen(false);
     };
     
@@ -198,6 +180,7 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
 
     const due = isDue(fsrsState);
     return (
+        <>
         <Card className={cn("transition-all duration-300", borderColorClass, backgroundColorClass)}>
             <CardContent className="pt-6">
                 <blockquote className="border-l-4 border-primary/20 pl-4">
@@ -263,9 +246,9 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                             </DropdownMenuPortal>
                          </DropdownMenuSub>
                          
-                         <DropdownMenuItem onClick={(e)=>{ e.preventDefault(); handleOpenEdit(); }}>
+                         <DropdownMenuItem onClick={(e)=>{ e.preventDefault(); setIsEditOpen(true); }}>
                            <Pencil className="mr-2 h-4 w-4" />
-                           <span>编辑内容</span>
+                           <span>编辑练习</span>
                          </DropdownMenuItem>
                         
                         <DropdownMenuSeparator />
@@ -295,24 +278,13 @@ export default function ExerciseCard({ termData, onUpdate, onDelete, groups = []
                     </DropdownMenu>
                 </div>
             </CardFooter>
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-              <DialogContent className="sm:max-w-xl">
-                <DialogHeader>
-                  <DialogTitle>编辑术语与描述</DialogTitle>
-                  <DialogDescription>修改后将立即保存至当前卡片。</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-3">
-                  <Input value={editTerm} onChange={(e)=> setEditTerm(e.target.value)} placeholder="术语" />
-                  <Textarea value={editExplanation} rows={5} onChange={(e)=> setEditExplanation(e.target.value)} placeholder="描述/解释" />
-                </div>
-                <DialogFooter>
-                  <Button variant="secondary" onClick={()=> setIsEditOpen(false)}>取消</Button>
-                  <Button onClick={handleSaveEdit}>保存</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
         </Card>
+        <EditExerciseDialog
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+            termData={termData}
+            onSave={handleSaveEdit}
+        />
+        </>
     );
 }
-
-    

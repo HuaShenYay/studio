@@ -121,28 +121,13 @@ export default function Home() {
     
     const handleUpdateTerm = async (updatedTerm: LiteraryTerm) => {
         const originalTerms = [...terms];
-        const originalTerm = originalTerms.find(t => t.id === updatedTerm.id);
-        
         setTerms((prevTerms) =>
             prevTerms.map((t) => (t.id === updatedTerm.id ? updatedTerm : t))
         );
 
-        if (!originalTerm) return;
-
         try {
-            const changes: Partial<LiteraryTerm> = {};
-            if (JSON.stringify(updatedTerm.status) !== JSON.stringify(originalTerm.status)) changes.status = updatedTerm.status;
-            if (JSON.stringify(updatedTerm.userAnswer) !== JSON.stringify(originalTerm.userAnswer)) changes.userAnswer = updatedTerm.userAnswer;
-            if (updatedTerm.isDifficult !== originalTerm.isDifficult) changes.isDifficult = updatedTerm.isDifficult;
-            if (updatedTerm.groupName !== originalTerm.groupName) changes.groupName = updatedTerm.groupName;
-            if (updatedTerm.term !== originalTerm.term) changes.term = updatedTerm.term;
-            if (updatedTerm.explanation !== originalTerm.explanation) changes.explanation = updatedTerm.explanation;
-            if (updatedTerm.exercise !== originalTerm.exercise) changes.exercise = updatedTerm.exercise;
-            if (JSON.stringify(updatedTerm.answer) !== JSON.stringify(originalTerm.answer)) changes.answer = updatedTerm.answer;
-            
-            if (Object.keys(changes).length > 0) {
-              await updateTerm(updatedTerm.id, changes);
-            }
+            // The service will figure out what changed. Just send the whole thing.
+            await updateTerm(updatedTerm.id, updatedTerm);
         } catch (error) {
             console.error('Failed to update term:', error);
             const errorMessage = error instanceof Error ? error.message : '一个未知错误发生了。';
@@ -349,7 +334,3 @@ export default function Home() {
         </AppLayout>
     );
 }
-
-    
-
-    

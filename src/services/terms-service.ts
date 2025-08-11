@@ -213,5 +213,3 @@ export async function resetAllTerms(): Promise<void> {
         throw new Error(`重置所有术语失败: ${error.message}`);
     }
 }
-
-    
